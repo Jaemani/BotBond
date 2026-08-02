@@ -13,17 +13,19 @@
 | usage 정산 조회 (getUsageSettlement) | NOT VERIFIED | | |
 | 실제 결제 1건 (Gate 1 요건) | NOT VERIFIED | | |
 
-## Gateway adapter 인터페이스 (B 핸드오프)
+## Gateway adapter 인터페이스 (B 핸드오프 — docs/09 기준으로 확정)
+
+docs/09-role-c-integration-handoff.md §PaymentAdapter가 유일 기준. 이전 초안(입력 형태 상이)은 폐기.
 
 ```ts
 interface PaymentAdapter {
-  createChallenge(req: { sessionId: string; amountAtomic: string }): Promise<PaymentChallenge>;
-  verifyCredential(credential: string): Promise<{ valid: boolean; capAtomic: string }>;
-  getUsageSettlement(sessionId: string): Promise<{ chargedAtomic: string; receiptRef: string }>;
+  createChallenge(input: { sessionId: string; usageCapAtomic: string }): Promise<PaymentChallengeResult>;
+  verifyCredential(input: { sessionId: string; credential: string; challenge?: string }): Promise<PaymentVerificationResult>;
+  getUsageSettlement(input: { sessionId: string; calls: number; usageCapAtomic: string }): Promise<UsageSettlementResult>;
 }
 ```
 
-(타입 세부는 spike 결과에 따라 CCR로 확정)
+Gateway 활성화 규칙: `status == CONFIRMED` + `usageLimitAtomic >= AccessPolicy.constraints.usageCapAtomic`. credential은 불투명 유지, 로그 금지.
 
 ## 조사 로그
 
