@@ -44,6 +44,46 @@ export type SettlementAuthorizationEvidence = {
   signature?: string; // HMAC-SHA256(secret, `${evidenceHash}.${nonce}`) hex
 };
 
+/**
+ * PaymentAdapter 결과 타입 — docs/09는 envelope + activation 규칙(`usageLimitAtomic` 필수)만
+ * 명시하므로 필드는 최소로 유지. 명명은 docs/03 receipt(`usageChargedAtomic`) 정합.
+ * 병합 시 B의 `@botbond/contracts` 실타입과 대조 후 교체.
+ */
+export type PaymentChallengeResult = AdapterResult & {
+  /** agent에게 전달할 불투명 challenge (서명 포함). 로그 금지 대상 아님(credential만 금지)이나 관례상 축약 로그 권장. */
+  challenge?: string;
+  usageCapAtomic?: string;
+};
+
+export type PaymentVerificationResult = AdapterResult & {
+  /** Gateway activation 규칙: CONFIRMED + usageLimitAtomic >= AccessPolicy.constraints.usageCapAtomic */
+  usageLimitAtomic?: string;
+};
+
+export type UsageSettlementResult = AdapterResult & {
+  /** docs/03 receipt 필드명 정합 (calls × unit price, cap 상한) */
+  usageChargedAtomic?: string;
+};
+
+export interface PaymentAdapter {
+  createChallenge(input: {
+    sessionId: string;
+    usageCapAtomic: string;
+  }): Promise<PaymentChallengeResult>;
+
+  verifyCredential(input: {
+    sessionId: string;
+    credential: string;
+    challenge?: string;
+  }): Promise<PaymentVerificationResult>;
+
+  getUsageSettlement(input: {
+    sessionId: string;
+    calls: number;
+    usageCapAtomic: string;
+  }): Promise<UsageSettlementResult>;
+}
+
 export interface BondAdapter {
   verifyOpenBond(input: {
     sessionId: string;

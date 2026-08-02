@@ -36,6 +36,10 @@ Claim: pay.sh spike 완료 — sandbox에서 402 per-call 결제 rail 실검증(
 Evidence: `docs/c/paysh-spike.md` VERIFIED 표 + 조사 로그 1~3 (pay v0.26.0, debugger.pay.sh AAPL quote 수신).
 Limit: verifyCredential·getUsageSettlement의 pay.sh 서버측 표면 미확인(로컬 슬라이스는 HMAC fallback). subscription E2E는 provider측 Plan PDA 필요로 데모 범위 밖. devnet 실결제 미실행.
 
+Claim: docs/09 PaymentAdapter 실구현(CappedSessionPaymentAdapter, fallback 모드) — challenge/credential HMAC 발급·검증, credential 불투명성, activation 규칙(usageLimitAtomic), 정확 과금 + cap 상한 정산. 전체 스위트 25 passing.
+Evidence: `packages/payment-client/src/payment-adapter.ts` + `tests/payment-adapter.test.ts` 8 passing. 모드 판정·실패코드는 `docs/c/payment-adapter.md`.
+Limit: B `runPaymentAdapterContract` 하니스는 병합 후. pay.sh 실연동(402 endpoint를 gateway 뒤 배치)은 데모 범위 밖 — sandbox rail 시연과 issueCredential 브리지로 연결.
+
 Claim: devnet 증빙 원샷 파이프라인 준비 완료 — 배포 + open→close(전액환불) + replay 거부 + open→penalty 정산을 한 명령으로 실행, tx·Explorer 링크를 `docs/c/solana-evidence.md`에 자동 기록.
 Evidence: `scripts/devnet-evidence.sh`, `scripts/devnet-scenario.ts` (로컬 validator 스모크 통과).
 Limit: devnet 실행 자체는 CLI 키페어 SOL 부족으로 대기 — Phantom→`BCvDRgFChtunjJ2mnGnBF9HGRvZm2wTSPgNWJxvCg6Hb` 5 SOL 이체 후 `bash scripts/devnet-evidence.sh` 1회.
