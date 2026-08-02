@@ -47,3 +47,7 @@ Limit: devnet 실행 자체는 CLI 키페어 SOL 부족으로 대기 — Phantom
 Claim: **devnet 온체인 증빙 확보 완료** (제출 필수 항목 #8·#9) — 프로그램 배포 + open_bond×2 / close_valid(전액환불) / settle_violation(penalty 300000, 잔액 700000 환불, 보존식 성립) 실행, 같은 세션 재정산 시도는 `SETTLEMENT_CONFLICT`로 거부(이중정산 방어). close/settle tx는 `Finalized` 확인.
 Evidence: `docs/c/solana-evidence.md` — Program `HoamYxgGuZoQerLGthZK8K4vLKTvEraZ4o7N8fkjk4bc`(devnet, slot 480678232 배포), tx 4건 Explorer 링크. 재현: `bash scripts/devnet-evidence.sh`.
 Limit: agent 서명은 데모상 CLI 키페어(=payer)가 대행 — Phantom 지갑이 직접 서명하는 데모영상용 흐름은 A의 UI 경유(별도). 반복 실행 시 devnet RPC 429 레이트리밋으로 재시도 지연 가능.
+
+Claim: **병합 리허설 완료** (B 지시 "지금 B랑 합칠 수 있도록 + 실제로 될지 미리 테스트") — B 하니스 8체크(docs/09)를 같은 명칭·순서로 레플리카해 8/8 통과, canonical policy hash 구현(docs/03 §1), payment-client를 npm workspace 패키지화(`@botbond/payment-client`), B용 배선 가이드 작성. 전체 스위트 37 passing (프로그램 9 + bond 8 + payment 8 + policy-hash 4 + 리허설 8).
+Evidence: `tests/adapter-contract-rehearsal.test.ts`, `tests/policy-hash.test.ts`, `packages/payment-client/src/policy-hash.ts`, `packages/payment-client/package.json`, `docs/c/merge-plan.md`. 실측 특이사항: 정산 직후 `getTransactionStatus`는 1~2초 PENDING(retryable) — gateway 폴링 필요(merge-plan §4에 명기).
+Limit: B 저장소 실물 필요분만 잔여 — 실제 `runBondAdapterContract`/`runPaymentAdapterContract` 실행(delivery #7), golden fixture 패리티(GOLDEN 블록 주석 해제, 기대 `sha256:120cece7…`), contracts-mirror↔실타입 필드명 diff. HMAC 공유키 2종(BOTBOND_EVIDENCE_SECRET·BOTBOND_PAYMENT_SECRET) 값은 팀 채널 합의 필요.

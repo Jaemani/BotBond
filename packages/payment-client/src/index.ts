@@ -14,6 +14,7 @@ import { getAssociatedTokenAddressSync } from "@solana/spl-token";
 export * from "./contracts-mirror";
 export * from "./bond-adapter";
 export * from "./payment-adapter";
+export * from "./policy-hash";
 
 export const BOND_SEED = "bond";
 
