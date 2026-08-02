@@ -35,7 +35,7 @@
 
 ## Reference 형식 (delivery #6)
 
-- Program ID: `HoamYxgGuZoQerLGthZK8K4vLKTvEraZ4o7N8fkjk4bc` (devnet 배포 후 solana-evidence.md에서 최종 확정)
+- Program ID: `HoamYxgGuZoQerLGthZK8K4vLKTvEraZ4o7N8fkjk4bc` (devnet 배포 완료 2026-08-02 — 배포 tx·트랜잭션 증빙은 solana-evidence.md)
 - Network: Solana devnet / IDL: `target/idl/botbond.json` (빌드 산출물, 저장소 포함 예정)
 - `providerReference`: 정산류 = base58 tx signature (폴링·receipt 회수용 안정 키), verify = bond account 주소
 - Explorer URL 파생은 UI 몫이 아니라 C가 제공: `explorerTxUrl(sig)` → `https://explorer.solana.com/tx/<SIG>?cluster=devnet`. Gateway는 안정 reference만 저장.

@@ -43,3 +43,7 @@ Limit: B `runPaymentAdapterContract` 하니스는 병합 후. pay.sh 실연동(4
 Claim: devnet 증빙 원샷 파이프라인 준비 완료 — 배포 + open→close(전액환불) + replay 거부 + open→penalty 정산을 한 명령으로 실행, tx·Explorer 링크를 `docs/c/solana-evidence.md`에 자동 기록.
 Evidence: `scripts/devnet-evidence.sh`, `scripts/devnet-scenario.ts` (로컬 validator 스모크 통과).
 Limit: devnet 실행 자체는 CLI 키페어 SOL 부족으로 대기 — Phantom→`BCvDRgFChtunjJ2mnGnBF9HGRvZm2wTSPgNWJxvCg6Hb` 5 SOL 이체 후 `bash scripts/devnet-evidence.sh` 1회.
+
+Claim: **devnet 온체인 증빙 확보 완료** (제출 필수 항목 #8·#9) — 프로그램 배포 + open_bond×2 / close_valid(전액환불) / settle_violation(penalty 300000, 잔액 700000 환불, 보존식 성립) 실행, 같은 세션 재정산 시도는 `SETTLEMENT_CONFLICT`로 거부(이중정산 방어). close/settle tx는 `Finalized` 확인.
+Evidence: `docs/c/solana-evidence.md` — Program `HoamYxgGuZoQerLGthZK8K4vLKTvEraZ4o7N8fkjk4bc`(devnet, slot 480678232 배포), tx 4건 Explorer 링크. 재현: `bash scripts/devnet-evidence.sh`.
+Limit: agent 서명은 데모상 CLI 키페어(=payer)가 대행 — Phantom 지갑이 직접 서명하는 데모영상용 흐름은 A의 UI 경유(별도). 반복 실행 시 devnet RPC 429 레이트리밋으로 재시도 지연 가능.
