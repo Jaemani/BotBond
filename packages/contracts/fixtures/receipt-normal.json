@@ -1,0 +1,14 @@
+{
+  "sessionId": "ses_fixture_normal",
+  "outcome": "CLOSED",
+  "policyHash": "sha256:120cece73bb7e5229db531c96d82b9d210a419ac9a901a34ccf72b136d346feb",
+  "calls": 3,
+  "usageChargedAtomic": "3000",
+  "bondRefundedAtomic": "1000000",
+  "penaltyAtomic": "0",
+  "transactions": [
+    {"kind": "PAYMENT", "status": "CONFIRMED", "providerReference": "fake-usage:ses_fixture_normal", "fixtureMarker": "FAKE_ADAPTER_FIXTURE"},
+    {"kind": "BOND", "status": "CONFIRMED", "providerReference": "fake-bond-refund:ses_fixture_normal", "fixtureMarker": "FAKE_ADAPTER_FIXTURE"}
+  ],
+  "receiptHash": "sha256:fixture-normal-receipt"
+}

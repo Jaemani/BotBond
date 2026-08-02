@@ -1,0 +1,74 @@
+[
+  {
+    "eventId": "evt_expired_001",
+    "sessionId": "ses_fixture_expired",
+    "occurredAt": "2026-08-02T12:10:00.000Z",
+    "type": "INTENT_RECEIVED",
+    "data": {"intentId": "int_fixture_expired", "purpose": "Reserve one laptop for 60 seconds."},
+    "traceId": "tr_fixture_expired"
+  },
+  {
+    "eventId": "evt_expired_002",
+    "sessionId": "ses_fixture_expired",
+    "occurredAt": "2026-08-02T12:10:00.100Z",
+    "type": "POLICY_COMPILED",
+    "data": {"policyHash": "sha256:120cece73bb7e5229db531c96d82b9d210a419ac9a901a34ccf72b136d346feb", "fixtureMarker": "FAKE_COMPILER_FIXTURE"},
+    "traceId": "tr_fixture_expired"
+  },
+  {
+    "eventId": "evt_expired_003",
+    "sessionId": "ses_fixture_expired",
+    "occurredAt": "2026-08-02T12:10:00.200Z",
+    "type": "PAYMENT_VERIFIED",
+    "data": {"status": "CONFIRMED", "fixtureMarker": "FAKE_ADAPTER_FIXTURE"},
+    "traceId": "tr_fixture_expired"
+  },
+  {
+    "eventId": "evt_expired_004",
+    "sessionId": "ses_fixture_expired",
+    "occurredAt": "2026-08-02T12:10:00.300Z",
+    "type": "BOND_OPENED",
+    "data": {"status": "CONFIRMED", "bondAmountAtomic": "1000000", "fixtureMarker": "FAKE_ADAPTER_FIXTURE"},
+    "traceId": "tr_fixture_expired"
+  },
+  {
+    "eventId": "evt_expired_005",
+    "sessionId": "ses_fixture_expired",
+    "occurredAt": "2026-08-02T12:10:00.400Z",
+    "type": "SESSION_ACTIVATED",
+    "data": {"expiresAt": "2026-08-02T12:15:00.000Z"},
+    "traceId": "tr_fixture_expired"
+  },
+  {
+    "eventId": "evt_expired_006",
+    "sessionId": "ses_fixture_expired",
+    "occurredAt": "2026-08-02T12:10:01.000Z",
+    "type": "RESERVATION_CREATED",
+    "data": {"reservationId": "res_fixture_expired", "productId": "lap-2", "expiresAt": "2026-08-02T12:11:01.000Z"},
+    "traceId": "tr_fixture_expired"
+  },
+  {
+    "eventId": "evt_expired_007",
+    "sessionId": "ses_fixture_expired",
+    "occurredAt": "2026-08-02T12:11:01.001Z",
+    "type": "PENALTY_SETTLED",
+    "data": {"penaltyAtomic": "200000", "bondRefundedAtomic": "800000", "fixtureMarker": "FAKE_ADAPTER_FIXTURE"},
+    "traceId": "tr_fixture_expired"
+  },
+  {
+    "eventId": "evt_expired_008",
+    "sessionId": "ses_fixture_expired",
+    "occurredAt": "2026-08-02T12:11:01.002Z",
+    "type": "RESERVATION_EXPIRED",
+    "data": {"reservationId": "res_fixture_expired", "inventoryRestored": true},
+    "traceId": "tr_fixture_expired"
+  },
+  {
+    "eventId": "evt_expired_009",
+    "sessionId": "ses_fixture_expired",
+    "occurredAt": "2026-08-02T12:11:01.003Z",
+    "type": "USAGE_SETTLED",
+    "data": {"usageChargedAtomic": "2000", "fixtureMarker": "FAKE_ADAPTER_FIXTURE"},
+    "traceId": "tr_fixture_expired"
+  }
+]

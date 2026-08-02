@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://botbond.dev/schemas/access-policy-v1.json",
+  "title": "AccessPolicy",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "policyId", "merchantId", "agentWallet", "purpose", "allowedOperations", "constraints", "bondedActions", "settlement", "catalogVersion"],
+  "properties": {
+    "version": {"const": "botbond-policy/v1"},
+    "policyId": {"type": "string", "minLength": 1},
+    "merchantId": {"type": "string", "minLength": 1},
+    "agentWallet": {"type": "string", "minLength": 1},
+    "purpose": {"type": "string", "minLength": 1},
+    "allowedOperations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["method", "pathTemplate", "allowedResponseFields", "maxCalls"],
+        "properties": {
+          "method": {"enum": ["GET", "POST"]},
+          "pathTemplate": {"type": "string", "pattern": "^/"},
+          "allowedResponseFields": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+          "maxCalls": {"type": "integer", "minimum": 1}
+        }
+      }
+    },
+    "constraints": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["maxTotalCalls", "maxRequestsPerMinute", "expiresAt", "usageCapAtomic", "bondAmountAtomic", "maxPenaltyAtomic"],
+      "properties": {
+        "maxTotalCalls": {"type": "integer", "minimum": 1},
+        "maxRequestsPerMinute": {"type": "integer", "minimum": 1},
+        "expiresAt": {"type": "string", "format": "date-time"},
+        "usageCapAtomic": {"type": "string", "pattern": "^(0|[1-9][0-9]*)$"},
+        "bondAmountAtomic": {"type": "string", "pattern": "^(0|[1-9][0-9]*)$"},
+        "maxPenaltyAtomic": {"type": "string", "pattern": "^(0|[1-9][0-9]*)$"}
+      }
+    },
+    "bondedActions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["operationId", "maxActive", "ttlSeconds", "expiryPenaltyAtomic"],
+        "properties": {
+          "operationId": {"type": "string", "minLength": 1},
+          "maxActive": {"type": "integer", "minimum": 1},
+          "ttlSeconds": {"type": "integer", "minimum": 1},
+          "expiryPenaltyAtomic": {"type": "string", "pattern": "^(0|[1-9][0-9]*)$"}
+        }
+      }
+    },
+    "settlement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["validClose", "scopeViolation", "expiry"],
+      "properties": {
+        "validClose": {"const": "REFUND_BOND"},
+        "scopeViolation": {"const": "BOUNDED_PENALTY_AND_REFUND_REMAINDER"},
+        "expiry": {"const": "RECLAIM_AFTER_GRACE_PERIOD"}
+      }
+    },
+    "catalogVersion": {"type": "string", "minLength": 1}
+  }
+}

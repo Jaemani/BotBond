@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://botbond.dev/schemas/botbond-event-v1.json",
+  "title": "BotBondEvent",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["eventId", "sessionId", "occurredAt", "type", "data", "traceId"],
+  "properties": {
+    "eventId": {"type": "string", "minLength": 1},
+    "sessionId": {"type": "string", "minLength": 1},
+    "occurredAt": {"type": "string", "format": "date-time"},
+    "type": {"enum": ["INTENT_RECEIVED", "POLICY_COMPILED", "PAYMENT_VERIFIED", "BOND_OPENED", "SESSION_ACTIVATED", "REQUEST_ALLOWED", "REQUEST_DENIED", "RESERVATION_CREATED", "RESERVATION_RELEASED", "RESERVATION_CONSUMED", "RESERVATION_EXPIRED", "USAGE_SETTLED", "BOND_REFUNDED", "PENALTY_SETTLED", "SESSION_CLOSED"]},
+    "data": {"type": "object"},
+    "traceId": {"type": "string", "minLength": 1}
+  }
+}

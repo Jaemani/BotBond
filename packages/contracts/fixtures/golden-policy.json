@@ -1,0 +1,55 @@
+{
+  "version": "botbond-policy/v1",
+  "policyId": "pol_golden_reservation_v1",
+  "merchantId": "demo-commerce",
+  "agentWallet": "DemoAgentWallet1111111111111111111111111111",
+  "purpose": "Compare laptop prices and stock, then reserve one laptop for 60 seconds.",
+  "allowedOperations": [
+    {
+      "method": "GET",
+      "pathTemplate": "/products",
+      "allowedResponseFields": ["id", "name", "price", "stock", "shipping"],
+      "maxCalls": 10
+    },
+    {
+      "method": "GET",
+      "pathTemplate": "/products/{id}/inventory",
+      "allowedResponseFields": ["stock", "updatedAt"],
+      "maxCalls": 20
+    },
+    {
+      "method": "POST",
+      "pathTemplate": "/reservations",
+      "allowedResponseFields": ["reservationId", "productId", "quantity", "expiresAt", "state"],
+      "maxCalls": 1
+    },
+    {
+      "method": "POST",
+      "pathTemplate": "/reservations/{id}/release",
+      "allowedResponseFields": ["reservationId", "state"],
+      "maxCalls": 1
+    }
+  ],
+  "constraints": {
+    "maxTotalCalls": 32,
+    "maxRequestsPerMinute": 20,
+    "expiresAt": "2026-08-02T12:05:00.000Z",
+    "usageCapAtomic": "200000",
+    "bondAmountAtomic": "1000000",
+    "maxPenaltyAtomic": "200000"
+  },
+  "bondedActions": [
+    {
+      "operationId": "reserve-inventory",
+      "maxActive": 1,
+      "ttlSeconds": 60,
+      "expiryPenaltyAtomic": "200000"
+    }
+  ],
+  "settlement": {
+    "validClose": "REFUND_BOND",
+    "scopeViolation": "BOUNDED_PENALTY_AND_REFUND_REMAINDER",
+    "expiry": "RECLAIM_AFTER_GRACE_PERIOD"
+  },
+  "catalogVersion": "merchant-catalog/v1"
+}

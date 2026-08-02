@@ -1,0 +1,70 @@
+{
+  "version": "merchant-catalog/v1",
+  "merchantId": "demo-commerce",
+  "maxTotalCalls": 50,
+  "maxRequestsPerMinute": 20,
+  "maxSessionTtlSeconds": 300,
+  "maxUsageCapAtomic": "200000",
+  "maxBondAmountAtomic": "1000000",
+  "maxPenaltyAtomic": "200000",
+  "defaultExpiryPenaltyAtomic": "200000",
+  "operations": [
+    {
+      "id": "search-products",
+      "method": "GET",
+      "pathTemplate": "/products",
+      "fields": ["id", "name", "price", "stock", "shipping"],
+      "maxCalls": 10,
+      "riskTier": "LOW"
+    },
+    {
+      "id": "get-product",
+      "method": "GET",
+      "pathTemplate": "/products/{id}",
+      "fields": ["id", "name", "price", "shipping"],
+      "maxCalls": 10,
+      "riskTier": "LOW"
+    },
+    {
+      "id": "get-inventory",
+      "method": "GET",
+      "pathTemplate": "/products/{id}/inventory",
+      "fields": ["stock", "updatedAt"],
+      "maxCalls": 25,
+      "riskTier": "LOW"
+    },
+    {
+      "id": "reserve-inventory",
+      "method": "POST",
+      "pathTemplate": "/reservations",
+      "fields": ["reservationId", "productId", "quantity", "expiresAt", "state"],
+      "maxCalls": 1,
+      "riskTier": "BONDED"
+    },
+    {
+      "id": "release-reservation",
+      "method": "POST",
+      "pathTemplate": "/reservations/{id}/release",
+      "fields": ["reservationId", "state"],
+      "maxCalls": 1,
+      "riskTier": "LOW"
+    },
+    {
+      "id": "consume-reservation",
+      "method": "POST",
+      "pathTemplate": "/reservations/{id}/consume",
+      "fields": ["reservationId", "state"],
+      "maxCalls": 1,
+      "riskTier": "LOW"
+    },
+    {
+      "id": "expire-reservation",
+      "method": "POST",
+      "pathTemplate": "/reservations/{id}/expire",
+      "fields": ["reservationId", "state"],
+      "maxCalls": 2,
+      "riskTier": "LOW"
+    }
+  ],
+  "forbiddenPaths": ["/seller-contacts", "/users", "/admin"]
+}

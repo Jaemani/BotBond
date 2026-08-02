@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://botbond.dev/schemas/settlement-receipt-v1.json",
+  "title": "SettlementReceipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["sessionId", "outcome", "policyHash", "calls", "usageChargedAtomic", "bondRefundedAtomic", "penaltyAtomic", "transactions", "receiptHash"],
+  "properties": {
+    "sessionId": {"type": "string", "minLength": 1},
+    "outcome": {"enum": ["CLOSED", "VIOLATED", "EXPIRED"]},
+    "policyHash": {"type": "string", "pattern": "^sha256:"},
+    "calls": {"type": "integer", "minimum": 0},
+    "usageChargedAtomic": {"type": "string", "pattern": "^(0|[1-9][0-9]*)$"},
+    "bondRefundedAtomic": {"type": "string", "pattern": "^(0|[1-9][0-9]*)$"},
+    "penaltyAtomic": {"type": "string", "pattern": "^(0|[1-9][0-9]*)$"},
+    "transactions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kind", "status"],
+        "properties": {
+          "kind": {"enum": ["PAYMENT", "BOND"]},
+          "status": {"enum": ["PENDING", "CONFIRMED", "FAILED"]},
+          "providerReference": {"type": "string"},
+          "fixtureMarker": {"const": "FAKE_ADAPTER_FIXTURE"}
+        }
+      }
+    },
+    "receiptHash": {"type": "string", "pattern": "^sha256:"}
+  }
+}

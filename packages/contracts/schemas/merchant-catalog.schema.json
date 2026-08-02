@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://botbond.dev/schemas/merchant-catalog-v1.json",
+  "title": "MerchantCapabilityCatalog",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "merchantId", "operations", "forbiddenPaths"],
+  "properties": {
+    "version": {"const": "merchant-catalog/v1"},
+    "merchantId": {"type": "string", "minLength": 1},
+    "maxTotalCalls": {"type": "integer", "minimum": 1},
+    "maxRequestsPerMinute": {"type": "integer", "minimum": 1},
+    "maxSessionTtlSeconds": {"type": "integer", "minimum": 1},
+    "maxUsageCapAtomic": {"type": "string", "pattern": "^(0|[1-9][0-9]*)$"},
+    "maxBondAmountAtomic": {"type": "string", "pattern": "^(0|[1-9][0-9]*)$"},
+    "maxPenaltyAtomic": {"type": "string", "pattern": "^(0|[1-9][0-9]*)$"},
+    "defaultExpiryPenaltyAtomic": {"type": "string", "pattern": "^(0|[1-9][0-9]*)$"},
+    "operations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "method", "pathTemplate", "fields", "maxCalls", "riskTier"],
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "method": {"enum": ["GET", "POST"]},
+          "pathTemplate": {"type": "string", "pattern": "^/"},
+          "fields": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+          "maxCalls": {"type": "integer", "minimum": 1},
+          "riskTier": {"enum": ["LOW", "BONDED"]}
+        }
+      }
+    },
+    "forbiddenPaths": {"type": "array", "items": {"type": "string", "pattern": "^/"}, "uniqueItems": true}
+  }
+}

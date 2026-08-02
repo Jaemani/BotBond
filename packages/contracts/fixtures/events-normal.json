@@ -1,0 +1,98 @@
+[
+  {
+    "eventId": "evt_fixture_001",
+    "sessionId": "ses_fixture_normal",
+    "occurredAt": "2026-08-02T12:00:00.000Z",
+    "type": "INTENT_RECEIVED",
+    "data": {"intentId": "int_fixture_normal", "purpose": "Compare laptops and reserve one for 60 seconds."},
+    "traceId": "tr_fixture_normal"
+  },
+  {
+    "eventId": "evt_fixture_002",
+    "sessionId": "ses_fixture_normal",
+    "occurredAt": "2026-08-02T12:00:00.100Z",
+    "type": "POLICY_COMPILED",
+    "data": {"policyHash": "sha256:120cece73bb7e5229db531c96d82b9d210a419ac9a901a34ccf72b136d346feb", "fixtureMarker": "FAKE_COMPILER_FIXTURE"},
+    "traceId": "tr_fixture_normal"
+  },
+  {
+    "eventId": "evt_fixture_003",
+    "sessionId": "ses_fixture_normal",
+    "occurredAt": "2026-08-02T12:00:00.200Z",
+    "type": "PAYMENT_VERIFIED",
+    "data": {"status": "CONFIRMED", "fixtureMarker": "FAKE_ADAPTER_FIXTURE"},
+    "traceId": "tr_fixture_normal"
+  },
+  {
+    "eventId": "evt_fixture_004",
+    "sessionId": "ses_fixture_normal",
+    "occurredAt": "2026-08-02T12:00:00.300Z",
+    "type": "BOND_OPENED",
+    "data": {"status": "CONFIRMED", "bondAmountAtomic": "1000000", "fixtureMarker": "FAKE_ADAPTER_FIXTURE"},
+    "traceId": "tr_fixture_normal"
+  },
+  {
+    "eventId": "evt_fixture_005",
+    "sessionId": "ses_fixture_normal",
+    "occurredAt": "2026-08-02T12:00:00.400Z",
+    "type": "SESSION_ACTIVATED",
+    "data": {"expiresAt": "2026-08-02T12:05:00.000Z"},
+    "traceId": "tr_fixture_normal"
+  },
+  {
+    "eventId": "evt_fixture_006",
+    "sessionId": "ses_fixture_normal",
+    "occurredAt": "2026-08-02T12:00:01.000Z",
+    "type": "REQUEST_ALLOWED",
+    "data": {"method": "GET", "path": "/products"},
+    "traceId": "tr_fixture_normal"
+  },
+  {
+    "eventId": "evt_fixture_007",
+    "sessionId": "ses_fixture_normal",
+    "occurredAt": "2026-08-02T12:00:02.000Z",
+    "type": "RESERVATION_CREATED",
+    "data": {"reservationId": "res_fixture_normal", "productId": "lap-1", "expiresAt": "2026-08-02T12:01:02.000Z"},
+    "traceId": "tr_fixture_normal"
+  },
+  {
+    "eventId": "evt_fixture_008",
+    "sessionId": "ses_fixture_normal",
+    "occurredAt": "2026-08-02T12:00:03.000Z",
+    "type": "REQUEST_DENIED",
+    "data": {"method": "GET", "path": "/seller-contacts", "reason": "OPERATION_NOT_ALLOWED", "penaltyAtomic": "0"},
+    "traceId": "tr_fixture_normal"
+  },
+  {
+    "eventId": "evt_fixture_009",
+    "sessionId": "ses_fixture_normal",
+    "occurredAt": "2026-08-02T12:00:04.000Z",
+    "type": "RESERVATION_RELEASED",
+    "data": {"reservationId": "res_fixture_normal"},
+    "traceId": "tr_fixture_normal"
+  },
+  {
+    "eventId": "evt_fixture_010",
+    "sessionId": "ses_fixture_normal",
+    "occurredAt": "2026-08-02T12:00:05.000Z",
+    "type": "USAGE_SETTLED",
+    "data": {"usageChargedAtomic": "3000", "fixtureMarker": "FAKE_ADAPTER_FIXTURE"},
+    "traceId": "tr_fixture_normal"
+  },
+  {
+    "eventId": "evt_fixture_011",
+    "sessionId": "ses_fixture_normal",
+    "occurredAt": "2026-08-02T12:00:05.100Z",
+    "type": "BOND_REFUNDED",
+    "data": {"bondRefundedAtomic": "1000000", "penaltyAtomic": "0", "fixtureMarker": "FAKE_ADAPTER_FIXTURE"},
+    "traceId": "tr_fixture_normal"
+  },
+  {
+    "eventId": "evt_fixture_012",
+    "sessionId": "ses_fixture_normal",
+    "occurredAt": "2026-08-02T12:00:05.200Z",
+    "type": "SESSION_CLOSED",
+    "data": {"outcome": "CLOSED", "receiptHash": "sha256:fixture-normal-receipt"},
+    "traceId": "tr_fixture_normal"
+  }
+]

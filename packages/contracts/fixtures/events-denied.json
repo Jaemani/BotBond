@@ -1,0 +1,34 @@
+[
+  {
+    "eventId": "evt_denied_001",
+    "sessionId": "ses_fixture_denied",
+    "occurredAt": "2026-08-02T12:20:00.000Z",
+    "type": "INTENT_RECEIVED",
+    "data": {"intentId": "int_fixture_denied", "purpose": "Compare prices and collect seller contact information."},
+    "traceId": "tr_fixture_denied"
+  },
+  {
+    "eventId": "evt_denied_002",
+    "sessionId": "ses_fixture_denied",
+    "occurredAt": "2026-08-02T12:20:00.100Z",
+    "type": "POLICY_COMPILED",
+    "data": {"policyHash": "sha256:120cece73bb7e5229db531c96d82b9d210a419ac9a901a34ccf72b136d346feb", "excludedPermissions": ["/seller-contacts"], "fixtureMarker": "FAKE_COMPILER_FIXTURE"},
+    "traceId": "tr_fixture_denied"
+  },
+  {
+    "eventId": "evt_denied_003",
+    "sessionId": "ses_fixture_denied",
+    "occurredAt": "2026-08-02T12:20:01.000Z",
+    "type": "SESSION_ACTIVATED",
+    "data": {"expiresAt": "2026-08-02T12:25:00.000Z"},
+    "traceId": "tr_fixture_denied"
+  },
+  {
+    "eventId": "evt_denied_004",
+    "sessionId": "ses_fixture_denied",
+    "occurredAt": "2026-08-02T12:20:02.000Z",
+    "type": "REQUEST_DENIED",
+    "data": {"method": "GET", "path": "/seller-contacts", "reason": "OPERATION_NOT_ALLOWED", "penaltyAtomic": "0"},
+    "traceId": "tr_fixture_denied"
+  }
+]
