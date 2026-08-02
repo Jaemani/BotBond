@@ -31,3 +31,11 @@ Limit: B의 `runBondAdapterContract` 하니스는 B 저장소에만 있어 병�
 Claim: 팀 정합 문서(_docs 07~10) 저장소 편입, CCR 번호 충돌 해소(내 session_nonce 제안을 CCR-002로 재번호 — CCR-001은 B가 2026-08-02 선점).
 Evidence: `docs/07~10-*.md`, `docs/ccr/CCR-002.md`.
 Limit: CCR-002는 여전히 Proposed — 팀 승인 대기.
+
+Claim: pay.sh spike 완료 — sandbox에서 402 per-call 결제 rail 실검증(설치·ephemeral wallet·402→지불→응답 수신), MPP subscription delegation은 CLI 표면 확인(per-period 금액 상한 + `--network sandbox`). 판정: 세션 cap 집행은 gateway+bond fallback 확정, pay.sh는 per-call rail로만 주장.
+Evidence: `docs/c/paysh-spike.md` VERIFIED 표 + 조사 로그 1~3 (pay v0.26.0, debugger.pay.sh AAPL quote 수신).
+Limit: verifyCredential·getUsageSettlement의 pay.sh 서버측 표면 미확인(로컬 슬라이스는 HMAC fallback). subscription E2E는 provider측 Plan PDA 필요로 데모 범위 밖. devnet 실결제 미실행.
+
+Claim: devnet 증빙 원샷 파이프라인 준비 완료 — 배포 + open→close(전액환불) + replay 거부 + open→penalty 정산을 한 명령으로 실행, tx·Explorer 링크를 `docs/c/solana-evidence.md`에 자동 기록.
+Evidence: `scripts/devnet-evidence.sh`, `scripts/devnet-scenario.ts` (로컬 validator 스모크 통과).
+Limit: devnet 실행 자체는 CLI 키페어 SOL 부족으로 대기 — Phantom→`BCvDRgFChtunjJ2mnGnBF9HGRvZm2wTSPgNWJxvCg6Hb` 5 SOL 이체 후 `bash scripts/devnet-evidence.sh` 1회.
