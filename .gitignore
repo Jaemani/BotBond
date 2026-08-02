@@ -1,0 +1,9 @@
+node_modules/
+target/
+.anchor/
+dist/
+.env
+.env.*
+*.so
+test-ledger/
+.DS_Store
