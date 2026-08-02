@@ -25,7 +25,7 @@ import type { Clock } from "./clock.js";
 import { SystemClock } from "./clock.js";
 import { DemoCommerceApi, CommerceError } from "./commerce.js";
 import { FakeIntentCompiler, HttpIntentCompiler, type IntentCompiler } from "./compiler.js";
-import { InMemoryRepository, type Repository, type SessionRecord } from "./repository.js";
+import { InMemoryRepository, type Repository, type ReservationRecord, type SessionRecord } from "./repository.js";
 import { eventsAfterLastId, SessionEventHub, serializeSse } from "./event-stream.js";
 import { createSettlementEvidence } from "./settlement-evidence.js";
 
@@ -197,7 +197,14 @@ export async function buildApp(options: BuildOptions = {}): Promise<FastifyInsta
     };
     await repository.saveSession(session);
     await emit(sessionId, "INTENT_RECEIVED", traceId, { intentId: intent.intentId, purpose: intent.policy.purpose });
-    await emit(sessionId, "POLICY_COMPILED", traceId, { intentId: intent.intentId, policyHash: intent.policyHash });
+    await emit(sessionId, "POLICY_COMPILED", traceId, {
+      intentId: intent.intentId,
+      policy: intent.policy,
+      policyHash: intent.policyHash,
+      excludedPermissions: intent.excludedPermissions,
+      explanation: intent.explanation,
+      ...(intent.fixtureMarker ? { fixtureMarker: intent.fixtureMarker } : {}),
+    });
     session = await repository.transitionSession(sessionId, "CREATED", "POLICY_READY");
     const verification = await payment.verifyCredential({ sessionId, credential: request.body.paymentCredential });
     if (verification.status !== "CONFIRMED") return await abortSessionCreation(verification.retryable ? 503 : 402, verification.failureCode ?? "PAYMENT_NOT_CONFIRMED", verification.retryable);
@@ -378,7 +385,14 @@ export async function buildApp(options: BuildOptions = {}): Promise<FastifyInsta
       throw cause;
     }
     if (countRequest) {
-      await emit(session.sessionId, eventType, traceId, { method: request.method, path });
+      const eventData: Record<string, unknown> = { method: request.method, path, callIndex: session.calls };
+      if (payload && typeof payload === "object") {
+        const reservation = payload as Partial<ReservationRecord>;
+        if (reservation.reservationId) eventData.reservationId = reservation.reservationId;
+        if (reservation.productId) eventData.productId = reservation.productId;
+        if (reservation.expiresAt) eventData.expiresAt = reservation.expiresAt;
+      }
+      await emit(session.sessionId, eventType, traceId, eventData);
     }
     if (eventType === "RESERVATION_EXPIRED" && expirySettlement && expiryUsage && expiryUsageChargedAtomic && expirySettledAmounts) {
       await emit(session.sessionId, "USAGE_SETTLED", traceId, { usageChargedAtomic: expiryUsageChargedAtomic, fixtureMarker: expiryUsage.fixtureMarker });

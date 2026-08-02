@@ -10,11 +10,26 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "npm run build --workspace @botbond/contracts && npm run build --workspace @botbond/observability && npm run build --workspace @botbond/gateway",
+    "build": "npm run build --workspace @botbond/contracts && npm run build --workspace @botbond/observability && npm run build --workspace @botbond/gateway && npm run build --workspace botbond-web",
     "test": "npm run build --workspace @botbond/contracts && npm run build --workspace @botbond/observability && npm run test --workspaces --if-present",
     "typecheck": "npm run build --workspace @botbond/contracts && npm run build --workspace @botbond/observability && npm run typecheck --workspaces --if-present",
     "e2e": "npm run build --workspace @botbond/contracts && npm run build --workspace @botbond/observability && npm run e2e --workspace @botbond/gateway",
     "test:firestore": "JAVA_HOME=/opt/homebrew/opt/openjdk@21 PATH=/opt/homebrew/opt/openjdk@21/bin:$PATH npx firebase-tools emulators:exec --only firestore --project botbond-test \"npm run test --workspace @botbond/gateway -- --run test/firestore-repository.test.ts\"",
-    "verify": "npm run typecheck && npm test && npm run test:firestore && npm run build && npm run e2e"
+    "test:role-c": "npm exec --package typescript@5.9.3 ts-mocha -- -p tsconfig.json -t 1000000 tests/**/*.test.ts",
+    "build:program": "anchor build",
+    "verify": "npm run typecheck && npm test && npm run test:firestore && npm run build && npm run e2e",
+    "fixtures:demo": "python3 packages/demo-fixtures/generate.py && cp packages/demo-fixtures/01-normal-session.json packages/demo-fixtures/02-scope-denied.json packages/demo-fixtures/03-abandoned-reservation.json packages/demo-fixtures/index.json apps/web/public/fixtures/"
+  },
+  "devDependencies": {
+    "@coral-xyz/anchor": "^0.32.1",
+    "@solana/spl-token": "^0.4.9",
+    "@solana/web3.js": "^1.95.0",
+    "@types/chai": "^4.3.0",
+    "@types/mocha": "^10.0.0",
+    "@types/node": "^22.0.0",
+    "chai": "^4.5.0",
+    "mocha": "^10.7.0",
+    "ts-mocha": "^10.0.0",
+    "typescript": "^5.8.3"
   }
 }

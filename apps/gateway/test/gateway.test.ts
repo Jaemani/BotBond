@@ -197,6 +197,10 @@ describe("Gateway vertical slice", () => {
     const events = await app.inject({ method: "GET", url: `/v1/sessions/${session.sessionId}/events`, headers: { authorization: `Bearer ${session.token}` } });
     expect(events.statusCode).toBe(200);
     expect(events.json().events.length).toBeGreaterThan(0);
+    const policyEvent = events.json().events.find((event: { type: string }) => event.type === "POLICY_COMPILED");
+    expect(policyEvent.data.policy).toEqual(intent.policy);
+    expect(policyEvent.data.excludedPermissions).toEqual([]);
+    expect(policyEvent.data.fixtureMarker).toBe("FAKE_COMPILER_FIXTURE");
     await app.close();
   });
 

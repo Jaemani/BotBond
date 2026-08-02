@@ -18,6 +18,7 @@
   "dependencies": {
     "@botbond/contracts": "*",
     "@botbond/observability": "*",
+    "@botbond/payment-client": "*",
     "@fastify/swagger": "^9.5.1",
     "@google-cloud/firestore": "^8.7.0",
     "fastify": "^5.4.0"

@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "types": ["mocha", "chai", "node"]
+  },
+  "include": ["tests/**/*", "packages/payment-client/src/**/*", "target/types/**/*"]
+}

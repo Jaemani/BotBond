@@ -1,0 +1,20 @@
+{
+  "fixtureVersion": "botbond-fixture/v1",
+  "scenarios": [
+    {
+      "id": "01-normal-session",
+      "label": "정상 세션",
+      "outcome": "CLOSED"
+    },
+    {
+      "id": "02-scope-denied",
+      "label": "범위 밖 차단",
+      "outcome": "CLOSED"
+    },
+    {
+      "id": "03-abandoned-reservation",
+      "label": "예약 방치",
+      "outcome": "VIOLATED"
+    }
+  ]
+}

@@ -1,0 +1,722 @@
+{
+  "fixtureVersion": "botbond-fixture/v1",
+  "name": "01-normal-session",
+  "title": "정상 세션",
+  "summary": "허용 범위 안에서 20건을 조회하고, 예약을 만들었다가 스스로 해제한 뒤 세션을 닫는다.",
+  "expectedOutcome": {
+    "outcome": "CLOSED",
+    "usageChargedAtomic": "20000",
+    "penaltyAtomic": "0",
+    "bondRefundedAtomic": "1000000"
+  },
+  "sessionId": "ses_normal_01",
+  "policyHash": "sha256:9f2c41ab7d3e58c0b16a4f9d2e7c8a35b0d94e1f6a2c7b83d5e0f1a4c9b6d8e27",
+  "events": [
+    {
+      "eventId": "evt_normal_01_001",
+      "sessionId": "ses_normal_01",
+      "occurredAt": "2026-08-21T10:00:00Z",
+      "type": "REQUEST_DENIED",
+      "data": {
+        "phase": "PRE_SESSION",
+        "method": "GET",
+        "path": "/products",
+        "httpStatus": 403,
+        "reason": "UNKNOWN_AUTOMATED_CLIENT",
+        "reasonText": "No session. Unknown automated client.",
+        "discoveryHint": "/.well-known/agent-access",
+        "bondDeltaAtomic": "0",
+        "protectedDataExposed": false
+      },
+      "traceId": "trace_a1b2c3"
+    },
+    {
+      "eventId": "evt_normal_01_002",
+      "sessionId": "ses_normal_01",
+      "occurredAt": "2026-08-21T10:00:00.600000Z",
+      "type": "INTENT_RECEIVED",
+      "data": {
+        "intentId": "int_7bd21c",
+        "task": "150만 원 이하 노트북 20개의 가격과 재고를 비교하고, 가장 좋은 상품 하나를 60초만 예약해줘. 판매자 연락처는 필요 없어.",
+        "taskEn": "Compare price and stock for 20 laptops under 1.5M KRW, then hold the best one for 60 seconds. Seller contacts are not needed.",
+        "budget": {
+          "usageCapAtomic": "200000",
+          "bondCapAtomic": "1000000"
+        },
+        "agentWallet": "AgntWa11etDemo11111111111111111111111111111"
+      },
+      "traceId": "trace_a1b2c3"
+    },
+    {
+      "eventId": "evt_normal_01_003",
+      "sessionId": "ses_normal_01",
+      "occurredAt": "2026-08-21T10:00:01.800000Z",
+      "type": "POLICY_COMPILED",
+      "data": {
+        "policy": {
+          "version": "botbond-policy/v1",
+          "policyId": "pol_lt20_price_stock",
+          "merchantId": "demo-commerce",
+          "agentWallet": "AgntWa11etDemo11111111111111111111111111111",
+          "purpose": "Compare price and stock for laptops under 1.5M KRW; hold one unit for 60s.",
+          "allowedOperations": [
+            {
+              "method": "GET",
+              "pathTemplate": "/products",
+              "allowedResponseFields": [
+                "id",
+                "name",
+                "price",
+                "stock",
+                "shipping"
+              ],
+              "maxCalls": 10
+            },
+            {
+              "method": "GET",
+              "pathTemplate": "/products/{id}/inventory",
+              "allowedResponseFields": [
+                "stock",
+                "updatedAt"
+              ],
+              "maxCalls": 25
+            },
+            {
+              "method": "POST",
+              "pathTemplate": "/reservations",
+              "allowedResponseFields": [
+                "productId",
+                "quantity",
+                "expiresAt"
+              ],
+              "maxCalls": 1
+            }
+          ],
+          "constraints": {
+            "maxTotalCalls": 25,
+            "maxRequestsPerMinute": 30,
+            "expiresAt": "2026-08-21T10:05:00Z",
+            "usageCapAtomic": "200000",
+            "bondAmountAtomic": "1000000",
+            "maxPenaltyAtomic": "300000"
+          },
+          "bondedActions": [
+            {
+              "operationId": "reserve-inventory",
+              "maxActive": 1,
+              "ttlSeconds": 60,
+              "expiryPenaltyAtomic": "250000"
+            }
+          ],
+          "settlement": {
+            "validClose": "REFUND_BOND",
+            "scopeViolation": "BOUNDED_PENALTY_AND_REFUND_REMAINDER",
+            "expiry": "RECLAIM_AFTER_GRACE_PERIOD"
+          },
+          "catalogVersion": "merchant-catalog/v1"
+        },
+        "policyHash": "sha256:9f2c41ab7d3e58c0b16a4f9d2e7c8a35b0d94e1f6a2c7b83d5e0f1a4c9b6d8e27",
+        "excludedOperations": [
+          {
+            "path": "/seller-contacts",
+            "reason": "Not required by the stated purpose"
+          },
+          {
+            "path": "/users",
+            "reason": "Outside merchant catalog"
+          }
+        ],
+        "excludedPermissions": [
+          "/seller-contacts",
+          "/users"
+        ],
+        "fixtureMarker": "FAKE_COMPILER_FIXTURE",
+        "explanation": [
+          "Price and stock fields are required to rank the candidates.",
+          "Seller contacts are excluded — the stated purpose does not need them.",
+          "One reservation, 60 seconds, because the agent asked to hold a single unit."
+        ],
+        "compiler": {
+          "model": "gemini-2.5-flash",
+          "latencyMs": 1180,
+          "repairAttempts": 0
+        }
+      },
+      "traceId": "trace_a1b2c3"
+    },
+    {
+      "eventId": "evt_normal_01_004",
+      "sessionId": "ses_normal_01",
+      "occurredAt": "2026-08-21T10:00:02.700000Z",
+      "type": "PAYMENT_VERIFIED",
+      "data": {
+        "provider": "pay.sh",
+        "mode": "PAY_PER_USE_BOUNDED",
+        "status": "CONFIRMED",
+        "fixtureMarker": "FAKE_ADAPTER_FIXTURE",
+        "usageCapAtomic": "200000",
+        "perCallAtomic": "1000",
+        "credentialRef": "psh_cred_4f19ab"
+      },
+      "traceId": "trace_a1b2c3"
+    },
+    {
+      "eventId": "evt_normal_01_005",
+      "sessionId": "ses_normal_01",
+      "occurredAt": "2026-08-21T10:00:04.100000Z",
+      "type": "BOND_OPENED",
+      "data": {
+        "bondAmountAtomic": "1000000",
+        "maxPenaltyAtomic": "300000",
+        "fixtureMarker": "FAKE_ADAPTER_FIXTURE",
+        "policyHash": "sha256:9f2c41ab7d3e58c0b16a4f9d2e7c8a35b0d94e1f6a2c7b83d5e0f1a4c9b6d8e27",
+        "bondAccount": "BondPDA9xQm4vK2rT7hN3wL8sC1yF6dE5aZ0bJ4uH",
+        "transaction": {
+          "signature": "5KpXn2Qw8RtY3vB6mA9cD4fG7hJ1kL0sN5pT8xZ2eW4rU7iO3yV6bM1nQ9aS2dF5gH",
+          "status": "CONFIRMED",
+          "cluster": "devnet",
+          "slot": 328114902
+        }
+      },
+      "traceId": "trace_a1b2c3"
+    },
+    {
+      "eventId": "evt_normal_01_006",
+      "sessionId": "ses_normal_01",
+      "occurredAt": "2026-08-21T10:00:04.600000Z",
+      "type": "SESSION_ACTIVATED",
+      "data": {
+        "expiresAt": "2026-08-21T10:05:00Z",
+        "maxTotalCalls": 25,
+        "tokenRef": "ses_token_...redacted"
+      },
+      "traceId": "trace_a1b2c3"
+    },
+    {
+      "eventId": "evt_normal_01_007",
+      "sessionId": "ses_normal_01",
+      "occurredAt": "2026-08-21T10:00:04.780000Z",
+      "type": "REQUEST_ALLOWED",
+      "data": {
+        "method": "GET",
+        "path": "/products",
+        "operationId": "search-products",
+        "returnedFields": [
+          "id",
+          "name",
+          "price",
+          "stock",
+          "shipping"
+        ],
+        "callIndex": 1,
+        "maxTotalCalls": 25,
+        "chargedAtomic": "1000",
+        "usageSpentAtomic": "1000",
+        "usageCapAtomic": "200000",
+        "bondDeltaAtomic": "0"
+      },
+      "traceId": "trace_a1b2c3"
+    },
+    {
+      "eventId": "evt_normal_01_008",
+      "sessionId": "ses_normal_01",
+      "occurredAt": "2026-08-21T10:00:04.960000Z",
+      "type": "REQUEST_ALLOWED",
+      "data": {
+        "method": "GET",
+        "path": "/products/lt-002/inventory",
+        "operationId": "get-inventory",
+        "returnedFields": [
+          "stock",
+          "updatedAt"
+        ],
+        "callIndex": 2,
+        "maxTotalCalls": 25,
+        "chargedAtomic": "1000",
+        "usageSpentAtomic": "2000",
+        "usageCapAtomic": "200000",
+        "bondDeltaAtomic": "0"
+      },
+      "traceId": "trace_a1b2c3"
+    },
+    {
+      "eventId": "evt_normal_01_009",
+      "sessionId": "ses_normal_01",
+      "occurredAt": "2026-08-21T10:00:05.140000Z",
+      "type": "REQUEST_ALLOWED",
+      "data": {
+        "method": "GET",
+        "path": "/products/lt-003/inventory",
+        "operationId": "get-inventory",
+        "returnedFields": [
+          "stock",
+          "updatedAt"
+        ],
+        "callIndex": 3,
+        "maxTotalCalls": 25,
+        "chargedAtomic": "1000",
+        "usageSpentAtomic": "3000",
+        "usageCapAtomic": "200000",
+        "bondDeltaAtomic": "0"
+      },
+      "traceId": "trace_a1b2c3"
+    },
+    {
+      "eventId": "evt_normal_01_010",
+      "sessionId": "ses_normal_01",
+      "occurredAt": "2026-08-21T10:00:05.320000Z",
+      "type": "REQUEST_ALLOWED",
+      "data": {
+        "method": "GET",
+        "path": "/products/lt-004/inventory",
+        "operationId": "get-inventory",
+        "returnedFields": [
+          "stock",
+          "updatedAt"
+        ],
+        "callIndex": 4,
+        "maxTotalCalls": 25,
+        "chargedAtomic": "1000",
+        "usageSpentAtomic": "4000",
+        "usageCapAtomic": "200000",
+        "bondDeltaAtomic": "0"
+      },
+      "traceId": "trace_a1b2c3"
+    },
+    {
+      "eventId": "evt_normal_01_011",
+      "sessionId": "ses_normal_01",
+      "occurredAt": "2026-08-21T10:00:05.500000Z",
+      "type": "REQUEST_ALLOWED",
+      "data": {
+        "method": "GET",
+        "path": "/products/lt-005/inventory",
+        "operationId": "get-inventory",
+        "returnedFields": [
+          "stock",
+          "updatedAt"
+        ],
+        "callIndex": 5,
+        "maxTotalCalls": 25,
+        "chargedAtomic": "1000",
+        "usageSpentAtomic": "5000",
+        "usageCapAtomic": "200000",
+        "bondDeltaAtomic": "0"
+      },
+      "traceId": "trace_a1b2c3"
+    },
+    {
+      "eventId": "evt_normal_01_012",
+      "sessionId": "ses_normal_01",
+      "occurredAt": "2026-08-21T10:00:05.680000Z",
+      "type": "REQUEST_ALLOWED",
+      "data": {
+        "method": "GET",
+        "path": "/products/lt-006/inventory",
+        "operationId": "get-inventory",
+        "returnedFields": [
+          "stock",
+          "updatedAt"
+        ],
+        "callIndex": 6,
+        "maxTotalCalls": 25,
+        "chargedAtomic": "1000",
+        "usageSpentAtomic": "6000",
+        "usageCapAtomic": "200000",
+        "bondDeltaAtomic": "0"
+      },
+      "traceId": "trace_a1b2c3"
+    },
+    {
+      "eventId": "evt_normal_01_013",
+      "sessionId": "ses_normal_01",
+      "occurredAt": "2026-08-21T10:00:05.860000Z",
+      "type": "REQUEST_ALLOWED",
+      "data": {
+        "method": "GET",
+        "path": "/products/lt-007/inventory",
+        "operationId": "get-inventory",
+        "returnedFields": [
+          "stock",
+          "updatedAt"
+        ],
+        "callIndex": 7,
+        "maxTotalCalls": 25,
+        "chargedAtomic": "1000",
+        "usageSpentAtomic": "7000",
+        "usageCapAtomic": "200000",
+        "bondDeltaAtomic": "0"
+      },
+      "traceId": "trace_a1b2c3"
+    },
+    {
+      "eventId": "evt_normal_01_014",
+      "sessionId": "ses_normal_01",
+      "occurredAt": "2026-08-21T10:00:06.040000Z",
+      "type": "REQUEST_ALLOWED",
+      "data": {
+        "method": "GET",
+        "path": "/products/lt-008/inventory",
+        "operationId": "get-inventory",
+        "returnedFields": [
+          "stock",
+          "updatedAt"
+        ],
+        "callIndex": 8,
+        "maxTotalCalls": 25,
+        "chargedAtomic": "1000",
+        "usageSpentAtomic": "8000",
+        "usageCapAtomic": "200000",
+        "bondDeltaAtomic": "0"
+      },
+      "traceId": "trace_a1b2c3"
+    },
+    {
+      "eventId": "evt_normal_01_015",
+      "sessionId": "ses_normal_01",
+      "occurredAt": "2026-08-21T10:00:06.220000Z",
+      "type": "REQUEST_ALLOWED",
+      "data": {
+        "method": "GET",
+        "path": "/products/lt-009/inventory",
+        "operationId": "get-inventory",
+        "returnedFields": [
+          "stock",
+          "updatedAt"
+        ],
+        "callIndex": 9,
+        "maxTotalCalls": 25,
+        "chargedAtomic": "1000",
+        "usageSpentAtomic": "9000",
+        "usageCapAtomic": "200000",
+        "bondDeltaAtomic": "0"
+      },
+      "traceId": "trace_a1b2c3"
+    },
+    {
+      "eventId": "evt_normal_01_016",
+      "sessionId": "ses_normal_01",
+      "occurredAt": "2026-08-21T10:00:06.400000Z",
+      "type": "REQUEST_ALLOWED",
+      "data": {
+        "method": "GET",
+        "path": "/products/lt-010/inventory",
+        "operationId": "get-inventory",
+        "returnedFields": [
+          "stock",
+          "updatedAt"
+        ],
+        "callIndex": 10,
+        "maxTotalCalls": 25,
+        "chargedAtomic": "1000",
+        "usageSpentAtomic": "10000",
+        "usageCapAtomic": "200000",
+        "bondDeltaAtomic": "0"
+      },
+      "traceId": "trace_a1b2c3"
+    },
+    {
+      "eventId": "evt_normal_01_017",
+      "sessionId": "ses_normal_01",
+      "occurredAt": "2026-08-21T10:00:06.580000Z",
+      "type": "REQUEST_ALLOWED",
+      "data": {
+        "method": "GET",
+        "path": "/products/lt-011/inventory",
+        "operationId": "get-inventory",
+        "returnedFields": [
+          "stock",
+          "updatedAt"
+        ],
+        "callIndex": 11,
+        "maxTotalCalls": 25,
+        "chargedAtomic": "1000",
+        "usageSpentAtomic": "11000",
+        "usageCapAtomic": "200000",
+        "bondDeltaAtomic": "0"
+      },
+      "traceId": "trace_a1b2c3"
+    },
+    {
+      "eventId": "evt_normal_01_018",
+      "sessionId": "ses_normal_01",
+      "occurredAt": "2026-08-21T10:00:06.760000Z",
+      "type": "REQUEST_ALLOWED",
+      "data": {
+        "method": "GET",
+        "path": "/products/lt-012/inventory",
+        "operationId": "get-inventory",
+        "returnedFields": [
+          "stock",
+          "updatedAt"
+        ],
+        "callIndex": 12,
+        "maxTotalCalls": 25,
+        "chargedAtomic": "1000",
+        "usageSpentAtomic": "12000",
+        "usageCapAtomic": "200000",
+        "bondDeltaAtomic": "0"
+      },
+      "traceId": "trace_a1b2c3"
+    },
+    {
+      "eventId": "evt_normal_01_019",
+      "sessionId": "ses_normal_01",
+      "occurredAt": "2026-08-21T10:00:06.940000Z",
+      "type": "REQUEST_ALLOWED",
+      "data": {
+        "method": "GET",
+        "path": "/products/lt-013/inventory",
+        "operationId": "get-inventory",
+        "returnedFields": [
+          "stock",
+          "updatedAt"
+        ],
+        "callIndex": 13,
+        "maxTotalCalls": 25,
+        "chargedAtomic": "1000",
+        "usageSpentAtomic": "13000",
+        "usageCapAtomic": "200000",
+        "bondDeltaAtomic": "0"
+      },
+      "traceId": "trace_a1b2c3"
+    },
+    {
+      "eventId": "evt_normal_01_020",
+      "sessionId": "ses_normal_01",
+      "occurredAt": "2026-08-21T10:00:07.120000Z",
+      "type": "REQUEST_ALLOWED",
+      "data": {
+        "method": "GET",
+        "path": "/products/lt-014/inventory",
+        "operationId": "get-inventory",
+        "returnedFields": [
+          "stock",
+          "updatedAt"
+        ],
+        "callIndex": 14,
+        "maxTotalCalls": 25,
+        "chargedAtomic": "1000",
+        "usageSpentAtomic": "14000",
+        "usageCapAtomic": "200000",
+        "bondDeltaAtomic": "0"
+      },
+      "traceId": "trace_a1b2c3"
+    },
+    {
+      "eventId": "evt_normal_01_021",
+      "sessionId": "ses_normal_01",
+      "occurredAt": "2026-08-21T10:00:07.300000Z",
+      "type": "REQUEST_ALLOWED",
+      "data": {
+        "method": "GET",
+        "path": "/products/lt-015/inventory",
+        "operationId": "get-inventory",
+        "returnedFields": [
+          "stock",
+          "updatedAt"
+        ],
+        "callIndex": 15,
+        "maxTotalCalls": 25,
+        "chargedAtomic": "1000",
+        "usageSpentAtomic": "15000",
+        "usageCapAtomic": "200000",
+        "bondDeltaAtomic": "0"
+      },
+      "traceId": "trace_a1b2c3"
+    },
+    {
+      "eventId": "evt_normal_01_022",
+      "sessionId": "ses_normal_01",
+      "occurredAt": "2026-08-21T10:00:07.480000Z",
+      "type": "REQUEST_ALLOWED",
+      "data": {
+        "method": "GET",
+        "path": "/products/lt-016/inventory",
+        "operationId": "get-inventory",
+        "returnedFields": [
+          "stock",
+          "updatedAt"
+        ],
+        "callIndex": 16,
+        "maxTotalCalls": 25,
+        "chargedAtomic": "1000",
+        "usageSpentAtomic": "16000",
+        "usageCapAtomic": "200000",
+        "bondDeltaAtomic": "0"
+      },
+      "traceId": "trace_a1b2c3"
+    },
+    {
+      "eventId": "evt_normal_01_023",
+      "sessionId": "ses_normal_01",
+      "occurredAt": "2026-08-21T10:00:07.660000Z",
+      "type": "REQUEST_ALLOWED",
+      "data": {
+        "method": "GET",
+        "path": "/products/lt-017/inventory",
+        "operationId": "get-inventory",
+        "returnedFields": [
+          "stock",
+          "updatedAt"
+        ],
+        "callIndex": 17,
+        "maxTotalCalls": 25,
+        "chargedAtomic": "1000",
+        "usageSpentAtomic": "17000",
+        "usageCapAtomic": "200000",
+        "bondDeltaAtomic": "0"
+      },
+      "traceId": "trace_a1b2c3"
+    },
+    {
+      "eventId": "evt_normal_01_024",
+      "sessionId": "ses_normal_01",
+      "occurredAt": "2026-08-21T10:00:07.840000Z",
+      "type": "REQUEST_ALLOWED",
+      "data": {
+        "method": "GET",
+        "path": "/products/lt-018/inventory",
+        "operationId": "get-inventory",
+        "returnedFields": [
+          "stock",
+          "updatedAt"
+        ],
+        "callIndex": 18,
+        "maxTotalCalls": 25,
+        "chargedAtomic": "1000",
+        "usageSpentAtomic": "18000",
+        "usageCapAtomic": "200000",
+        "bondDeltaAtomic": "0"
+      },
+      "traceId": "trace_a1b2c3"
+    },
+    {
+      "eventId": "evt_normal_01_025",
+      "sessionId": "ses_normal_01",
+      "occurredAt": "2026-08-21T10:00:08.020000Z",
+      "type": "REQUEST_ALLOWED",
+      "data": {
+        "method": "GET",
+        "path": "/products/lt-019/inventory",
+        "operationId": "get-inventory",
+        "returnedFields": [
+          "stock",
+          "updatedAt"
+        ],
+        "callIndex": 19,
+        "maxTotalCalls": 25,
+        "chargedAtomic": "1000",
+        "usageSpentAtomic": "19000",
+        "usageCapAtomic": "200000",
+        "bondDeltaAtomic": "0"
+      },
+      "traceId": "trace_a1b2c3"
+    },
+    {
+      "eventId": "evt_normal_01_026",
+      "sessionId": "ses_normal_01",
+      "occurredAt": "2026-08-21T10:00:08.200000Z",
+      "type": "REQUEST_ALLOWED",
+      "data": {
+        "method": "GET",
+        "path": "/products/lt-020/inventory",
+        "operationId": "get-inventory",
+        "returnedFields": [
+          "stock",
+          "updatedAt"
+        ],
+        "callIndex": 20,
+        "maxTotalCalls": 25,
+        "chargedAtomic": "1000",
+        "usageSpentAtomic": "20000",
+        "usageCapAtomic": "200000",
+        "bondDeltaAtomic": "0"
+      },
+      "traceId": "trace_a1b2c3"
+    },
+    {
+      "eventId": "evt_normal_01_027",
+      "sessionId": "ses_normal_01",
+      "occurredAt": "2026-08-21T10:00:08.900000Z",
+      "type": "RESERVATION_CREATED",
+      "data": {
+        "reservationId": "rsv_0091",
+        "productId": "lt-014",
+        "quantity": 1,
+        "ttlSeconds": 60,
+        "expiresAt": "2026-08-21T10:01:38Z",
+        "bondedAction": true,
+        "chargedAtomic": "0",
+        "usageSpentAtomic": "20000",
+        "bondDeltaAtomic": "0",
+        "note": "Bond confirmed before the bonded action was permitted."
+      },
+      "traceId": "trace_a1b2c3"
+    },
+    {
+      "eventId": "evt_normal_01_028",
+      "sessionId": "ses_normal_01",
+      "occurredAt": "2026-08-21T10:00:11Z",
+      "type": "RESERVATION_RELEASED",
+      "data": {
+        "reservationId": "rsv_0091",
+        "productId": "lt-014",
+        "releasedBy": "AGENT",
+        "heldMs": 21400,
+        "inventoryRestored": true,
+        "bondDeltaAtomic": "0"
+      },
+      "traceId": "trace_a1b2c3"
+    },
+    {
+      "eventId": "evt_normal_01_029",
+      "sessionId": "ses_normal_01",
+      "occurredAt": "2026-08-21T10:00:11.800000Z",
+      "type": "USAGE_SETTLED",
+      "data": {
+        "provider": "pay.sh",
+        "fixtureMarker": "FAKE_ADAPTER_FIXTURE",
+        "calls": 20,
+        "usageChargedAtomic": "20000",
+        "usageCapAtomic": "200000",
+        "settlementRef": "psh_settle_c81d20"
+      },
+      "traceId": "trace_a1b2c3"
+    },
+    {
+      "eventId": "evt_normal_01_030",
+      "sessionId": "ses_normal_01",
+      "occurredAt": "2026-08-21T10:00:13.100000Z",
+      "type": "BOND_REFUNDED",
+      "data": {
+        "refundedAtomic": "1000000",
+        "fixtureMarker": "FAKE_ADAPTER_FIXTURE",
+        "penaltyAtomic": "0",
+        "reason": "VALID_CLOSE",
+        "transaction": {
+          "signature": "3QmY7wR1tX9bV4nZ6cK2fD8gJ5hL0sA3pN7eT1uI4oM6yB2vC9rW5aS8dF1gH3jK7",
+          "status": "CONFIRMED",
+          "cluster": "devnet",
+          "slot": 328115744
+        }
+      },
+      "traceId": "trace_a1b2c3"
+    },
+    {
+      "eventId": "evt_normal_01_031",
+      "sessionId": "ses_normal_01",
+      "occurredAt": "2026-08-21T10:00:13.500000Z",
+      "type": "SESSION_CLOSED",
+      "data": {
+        "outcome": "CLOSED",
+        "calls": 20,
+        "usageChargedAtomic": "20000",
+        "bondRefundedAtomic": "1000000",
+        "penaltyAtomic": "0",
+        "receiptHash": "sha256:1a4d7e0b3c96f28d5a0e7b4c1f8a2d69e3b0c5f7a9d2e4b6c8f1a3d5e7b9c0f24"
+      },
+      "traceId": "trace_a1b2c3"
+    }
+  ]
+}

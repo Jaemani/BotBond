@@ -1,0 +1,532 @@
+{
+  "fixtureVersion": "botbond-fixture/v1",
+  "name": "03-abandoned-reservation",
+  "title": "예약 방치",
+  "summary": "예약을 만든 뒤 해제하지 않아 TTL이 만료된다. 사전에 서명한 예약비만 정산되고 나머지는 반환된다.",
+  "expectedOutcome": {
+    "outcome": "VIOLATED",
+    "usageChargedAtomic": "8000",
+    "penaltyAtomic": "250000",
+    "bondRefundedAtomic": "750000"
+  },
+  "sessionId": "ses_abandon_03",
+  "policyHash": "sha256:9f2c41ab7d3e58c0b16a4f9d2e7c8a35b0d94e1f6a2c7b83d5e0f1a4c9b6d8e27",
+  "events": [
+    {
+      "eventId": "evt_abandon_03_001",
+      "sessionId": "ses_abandon_03",
+      "occurredAt": "2026-08-21T10:00:00Z",
+      "type": "REQUEST_DENIED",
+      "data": {
+        "phase": "PRE_SESSION",
+        "method": "GET",
+        "path": "/products",
+        "httpStatus": 403,
+        "reason": "UNKNOWN_AUTOMATED_CLIENT",
+        "reasonText": "No session. Unknown automated client.",
+        "discoveryHint": "/.well-known/agent-access",
+        "bondDeltaAtomic": "0",
+        "protectedDataExposed": false
+      },
+      "traceId": "trace_g7h8i9"
+    },
+    {
+      "eventId": "evt_abandon_03_002",
+      "sessionId": "ses_abandon_03",
+      "occurredAt": "2026-08-21T10:00:00.600000Z",
+      "type": "INTENT_RECEIVED",
+      "data": {
+        "intentId": "int_7bd21c",
+        "task": "150만 원 이하 노트북 20개의 가격과 재고를 비교하고, 가장 좋은 상품 하나를 60초만 예약해줘. 판매자 연락처는 필요 없어.",
+        "taskEn": "Compare price and stock for 20 laptops under 1.5M KRW, then hold the best one for 60 seconds. Seller contacts are not needed.",
+        "budget": {
+          "usageCapAtomic": "200000",
+          "bondCapAtomic": "1000000"
+        },
+        "agentWallet": "AgntWa11etDemo11111111111111111111111111111"
+      },
+      "traceId": "trace_g7h8i9"
+    },
+    {
+      "eventId": "evt_abandon_03_003",
+      "sessionId": "ses_abandon_03",
+      "occurredAt": "2026-08-21T10:00:01.800000Z",
+      "type": "POLICY_COMPILED",
+      "data": {
+        "policy": {
+          "version": "botbond-policy/v1",
+          "policyId": "pol_lt20_price_stock",
+          "merchantId": "demo-commerce",
+          "agentWallet": "AgntWa11etDemo11111111111111111111111111111",
+          "purpose": "Compare price and stock for laptops under 1.5M KRW; hold one unit for 60s.",
+          "allowedOperations": [
+            {
+              "method": "GET",
+              "pathTemplate": "/products",
+              "allowedResponseFields": [
+                "id",
+                "name",
+                "price",
+                "stock",
+                "shipping"
+              ],
+              "maxCalls": 10
+            },
+            {
+              "method": "GET",
+              "pathTemplate": "/products/{id}/inventory",
+              "allowedResponseFields": [
+                "stock",
+                "updatedAt"
+              ],
+              "maxCalls": 25
+            },
+            {
+              "method": "POST",
+              "pathTemplate": "/reservations",
+              "allowedResponseFields": [
+                "productId",
+                "quantity",
+                "expiresAt"
+              ],
+              "maxCalls": 1
+            }
+          ],
+          "constraints": {
+            "maxTotalCalls": 25,
+            "maxRequestsPerMinute": 30,
+            "expiresAt": "2026-08-21T10:05:00Z",
+            "usageCapAtomic": "200000",
+            "bondAmountAtomic": "1000000",
+            "maxPenaltyAtomic": "300000"
+          },
+          "bondedActions": [
+            {
+              "operationId": "reserve-inventory",
+              "maxActive": 1,
+              "ttlSeconds": 60,
+              "expiryPenaltyAtomic": "250000"
+            }
+          ],
+          "settlement": {
+            "validClose": "REFUND_BOND",
+            "scopeViolation": "BOUNDED_PENALTY_AND_REFUND_REMAINDER",
+            "expiry": "RECLAIM_AFTER_GRACE_PERIOD"
+          },
+          "catalogVersion": "merchant-catalog/v1"
+        },
+        "policyHash": "sha256:9f2c41ab7d3e58c0b16a4f9d2e7c8a35b0d94e1f6a2c7b83d5e0f1a4c9b6d8e27",
+        "excludedOperations": [
+          {
+            "path": "/seller-contacts",
+            "reason": "Not required by the stated purpose"
+          },
+          {
+            "path": "/users",
+            "reason": "Outside merchant catalog"
+          }
+        ],
+        "excludedPermissions": [
+          "/seller-contacts",
+          "/users"
+        ],
+        "fixtureMarker": "FAKE_COMPILER_FIXTURE",
+        "explanation": [
+          "Price and stock fields are required to rank the candidates.",
+          "Seller contacts are excluded — the stated purpose does not need them.",
+          "One reservation, 60 seconds, because the agent asked to hold a single unit."
+        ],
+        "compiler": {
+          "model": "gemini-2.5-flash",
+          "latencyMs": 1180,
+          "repairAttempts": 0
+        }
+      },
+      "traceId": "trace_g7h8i9"
+    },
+    {
+      "eventId": "evt_abandon_03_004",
+      "sessionId": "ses_abandon_03",
+      "occurredAt": "2026-08-21T10:00:02.700000Z",
+      "type": "PAYMENT_VERIFIED",
+      "data": {
+        "provider": "pay.sh",
+        "mode": "PAY_PER_USE_BOUNDED",
+        "status": "CONFIRMED",
+        "fixtureMarker": "FAKE_ADAPTER_FIXTURE",
+        "usageCapAtomic": "200000",
+        "perCallAtomic": "1000",
+        "credentialRef": "psh_cred_4f19ab"
+      },
+      "traceId": "trace_g7h8i9"
+    },
+    {
+      "eventId": "evt_abandon_03_005",
+      "sessionId": "ses_abandon_03",
+      "occurredAt": "2026-08-21T10:00:04.100000Z",
+      "type": "BOND_OPENED",
+      "data": {
+        "bondAmountAtomic": "1000000",
+        "maxPenaltyAtomic": "300000",
+        "fixtureMarker": "FAKE_ADAPTER_FIXTURE",
+        "policyHash": "sha256:9f2c41ab7d3e58c0b16a4f9d2e7c8a35b0d94e1f6a2c7b83d5e0f1a4c9b6d8e27",
+        "bondAccount": "BondPDA9xQm4vK2rT7hN3wL8sC1yF6dE5aZ0bJ4uH",
+        "transaction": {
+          "signature": "5KpXn2Qw8RtY3vB6mA9cD4fG7hJ1kL0sN5pT8xZ2eW4rU7iO3yV6bM1nQ9aS2dF5gH",
+          "status": "CONFIRMED",
+          "cluster": "devnet",
+          "slot": 328114902
+        }
+      },
+      "traceId": "trace_g7h8i9"
+    },
+    {
+      "eventId": "evt_abandon_03_006",
+      "sessionId": "ses_abandon_03",
+      "occurredAt": "2026-08-21T10:00:04.600000Z",
+      "type": "SESSION_ACTIVATED",
+      "data": {
+        "expiresAt": "2026-08-21T10:05:00Z",
+        "maxTotalCalls": 25,
+        "tokenRef": "ses_token_...redacted"
+      },
+      "traceId": "trace_g7h8i9"
+    },
+    {
+      "eventId": "evt_abandon_03_007",
+      "sessionId": "ses_abandon_03",
+      "occurredAt": "2026-08-21T10:00:04.780000Z",
+      "type": "REQUEST_ALLOWED",
+      "data": {
+        "method": "GET",
+        "path": "/products",
+        "operationId": "search-products",
+        "returnedFields": [
+          "id",
+          "name",
+          "price",
+          "stock",
+          "shipping"
+        ],
+        "callIndex": 1,
+        "maxTotalCalls": 25,
+        "chargedAtomic": "1000",
+        "usageSpentAtomic": "1000",
+        "usageCapAtomic": "200000",
+        "bondDeltaAtomic": "0"
+      },
+      "traceId": "trace_g7h8i9"
+    },
+    {
+      "eventId": "evt_abandon_03_008",
+      "sessionId": "ses_abandon_03",
+      "occurredAt": "2026-08-21T10:00:04.960000Z",
+      "type": "REQUEST_ALLOWED",
+      "data": {
+        "method": "GET",
+        "path": "/products/lt-002/inventory",
+        "operationId": "get-inventory",
+        "returnedFields": [
+          "stock",
+          "updatedAt"
+        ],
+        "callIndex": 2,
+        "maxTotalCalls": 25,
+        "chargedAtomic": "1000",
+        "usageSpentAtomic": "2000",
+        "usageCapAtomic": "200000",
+        "bondDeltaAtomic": "0"
+      },
+      "traceId": "trace_g7h8i9"
+    },
+    {
+      "eventId": "evt_abandon_03_009",
+      "sessionId": "ses_abandon_03",
+      "occurredAt": "2026-08-21T10:00:05.140000Z",
+      "type": "REQUEST_ALLOWED",
+      "data": {
+        "method": "GET",
+        "path": "/products/lt-003/inventory",
+        "operationId": "get-inventory",
+        "returnedFields": [
+          "stock",
+          "updatedAt"
+        ],
+        "callIndex": 3,
+        "maxTotalCalls": 25,
+        "chargedAtomic": "1000",
+        "usageSpentAtomic": "3000",
+        "usageCapAtomic": "200000",
+        "bondDeltaAtomic": "0"
+      },
+      "traceId": "trace_g7h8i9"
+    },
+    {
+      "eventId": "evt_abandon_03_010",
+      "sessionId": "ses_abandon_03",
+      "occurredAt": "2026-08-21T10:00:05.320000Z",
+      "type": "REQUEST_ALLOWED",
+      "data": {
+        "method": "GET",
+        "path": "/products/lt-004/inventory",
+        "operationId": "get-inventory",
+        "returnedFields": [
+          "stock",
+          "updatedAt"
+        ],
+        "callIndex": 4,
+        "maxTotalCalls": 25,
+        "chargedAtomic": "1000",
+        "usageSpentAtomic": "4000",
+        "usageCapAtomic": "200000",
+        "bondDeltaAtomic": "0"
+      },
+      "traceId": "trace_g7h8i9"
+    },
+    {
+      "eventId": "evt_abandon_03_011",
+      "sessionId": "ses_abandon_03",
+      "occurredAt": "2026-08-21T10:00:05.500000Z",
+      "type": "REQUEST_ALLOWED",
+      "data": {
+        "method": "GET",
+        "path": "/products/lt-005/inventory",
+        "operationId": "get-inventory",
+        "returnedFields": [
+          "stock",
+          "updatedAt"
+        ],
+        "callIndex": 5,
+        "maxTotalCalls": 25,
+        "chargedAtomic": "1000",
+        "usageSpentAtomic": "5000",
+        "usageCapAtomic": "200000",
+        "bondDeltaAtomic": "0"
+      },
+      "traceId": "trace_g7h8i9"
+    },
+    {
+      "eventId": "evt_abandon_03_012",
+      "sessionId": "ses_abandon_03",
+      "occurredAt": "2026-08-21T10:00:05.680000Z",
+      "type": "REQUEST_ALLOWED",
+      "data": {
+        "method": "GET",
+        "path": "/products/lt-006/inventory",
+        "operationId": "get-inventory",
+        "returnedFields": [
+          "stock",
+          "updatedAt"
+        ],
+        "callIndex": 6,
+        "maxTotalCalls": 25,
+        "chargedAtomic": "1000",
+        "usageSpentAtomic": "6000",
+        "usageCapAtomic": "200000",
+        "bondDeltaAtomic": "0"
+      },
+      "traceId": "trace_g7h8i9"
+    },
+    {
+      "eventId": "evt_abandon_03_013",
+      "sessionId": "ses_abandon_03",
+      "occurredAt": "2026-08-21T10:00:05.860000Z",
+      "type": "REQUEST_ALLOWED",
+      "data": {
+        "method": "GET",
+        "path": "/products/lt-007/inventory",
+        "operationId": "get-inventory",
+        "returnedFields": [
+          "stock",
+          "updatedAt"
+        ],
+        "callIndex": 7,
+        "maxTotalCalls": 25,
+        "chargedAtomic": "1000",
+        "usageSpentAtomic": "7000",
+        "usageCapAtomic": "200000",
+        "bondDeltaAtomic": "0"
+      },
+      "traceId": "trace_g7h8i9"
+    },
+    {
+      "eventId": "evt_abandon_03_014",
+      "sessionId": "ses_abandon_03",
+      "occurredAt": "2026-08-21T10:00:06.040000Z",
+      "type": "REQUEST_ALLOWED",
+      "data": {
+        "method": "GET",
+        "path": "/products/lt-008/inventory",
+        "operationId": "get-inventory",
+        "returnedFields": [
+          "stock",
+          "updatedAt"
+        ],
+        "callIndex": 8,
+        "maxTotalCalls": 25,
+        "chargedAtomic": "1000",
+        "usageSpentAtomic": "8000",
+        "usageCapAtomic": "200000",
+        "bondDeltaAtomic": "0"
+      },
+      "traceId": "trace_g7h8i9"
+    },
+    {
+      "eventId": "evt_abandon_03_015",
+      "sessionId": "ses_abandon_03",
+      "occurredAt": "2026-08-21T10:00:06.740000Z",
+      "type": "RESERVATION_CREATED",
+      "data": {
+        "reservationId": "rsv_0134",
+        "productId": "lt-021",
+        "quantity": 1,
+        "ttlSeconds": 60,
+        "expiresAt": "2026-08-21T10:01:22Z",
+        "bondedAction": true,
+        "chargedAtomic": "0",
+        "usageSpentAtomic": "8000",
+        "bondDeltaAtomic": "0",
+        "signedExpiryPenaltyAtomic": "250000"
+      },
+      "traceId": "trace_g7h8i9"
+    },
+    {
+      "eventId": "evt_abandon_03_016",
+      "sessionId": "ses_abandon_03",
+      "occurredAt": "2026-08-21T10:00:07.740000Z",
+      "type": "RESERVATION_CREATED",
+      "data": {
+        "reservationId": "rsv_0134",
+        "tick": true,
+        "secondsRemaining": 45,
+        "bondDeltaAtomic": "0"
+      },
+      "traceId": "trace_g7h8i9"
+    },
+    {
+      "eventId": "evt_abandon_03_017",
+      "sessionId": "ses_abandon_03",
+      "occurredAt": "2026-08-21T10:00:08.740000Z",
+      "type": "RESERVATION_CREATED",
+      "data": {
+        "reservationId": "rsv_0134",
+        "tick": true,
+        "secondsRemaining": 30,
+        "bondDeltaAtomic": "0"
+      },
+      "traceId": "trace_g7h8i9"
+    },
+    {
+      "eventId": "evt_abandon_03_018",
+      "sessionId": "ses_abandon_03",
+      "occurredAt": "2026-08-21T10:00:09.740000Z",
+      "type": "RESERVATION_CREATED",
+      "data": {
+        "reservationId": "rsv_0134",
+        "tick": true,
+        "secondsRemaining": 15,
+        "bondDeltaAtomic": "0"
+      },
+      "traceId": "trace_g7h8i9"
+    },
+    {
+      "eventId": "evt_abandon_03_019",
+      "sessionId": "ses_abandon_03",
+      "occurredAt": "2026-08-21T10:00:10.740000Z",
+      "type": "RESERVATION_CREATED",
+      "data": {
+        "reservationId": "rsv_0134",
+        "tick": true,
+        "secondsRemaining": 5,
+        "bondDeltaAtomic": "0"
+      },
+      "traceId": "trace_g7h8i9"
+    },
+    {
+      "eventId": "evt_abandon_03_020",
+      "sessionId": "ses_abandon_03",
+      "occurredAt": "2026-08-21T10:00:12.240000Z",
+      "type": "RESERVATION_EXPIRED",
+      "data": {
+        "reservationId": "rsv_0134",
+        "productId": "lt-021",
+        "ttlSeconds": 60,
+        "inventoryRestored": true,
+        "detectedBy": "DETERMINISTIC_TTL_TIMER",
+        "signedExpiryPenaltyAtomic": "250000",
+        "reasonText": "The reservation was never released or consumed. Inventory was held for the full TTL."
+      },
+      "traceId": "trace_g7h8i9"
+    },
+    {
+      "eventId": "evt_abandon_03_021",
+      "sessionId": "ses_abandon_03",
+      "occurredAt": "2026-08-21T10:00:12.940000Z",
+      "type": "USAGE_SETTLED",
+      "data": {
+        "provider": "pay.sh",
+        "fixtureMarker": "FAKE_ADAPTER_FIXTURE",
+        "calls": 8,
+        "usageChargedAtomic": "8000",
+        "usageCapAtomic": "200000",
+        "settlementRef": "psh_settle_2d77ba"
+      },
+      "traceId": "trace_g7h8i9"
+    },
+    {
+      "eventId": "evt_abandon_03_022",
+      "sessionId": "ses_abandon_03",
+      "occurredAt": "2026-08-21T10:00:14.340000Z",
+      "type": "PENALTY_SETTLED",
+      "data": {
+        "penaltyAtomic": "250000",
+        "fixtureMarker": "FAKE_ADAPTER_FIXTURE",
+        "maxPenaltyAtomic": "300000",
+        "cause": "RESERVATION_EXPIRED",
+        "causeIsObjective": true,
+        "receiptHash": "sha256:c30a5e81b7d29f4c6a0e3b5d7f9a1c2e4b6d8f0a3c5e7b9d1f3a5c7e9b0d2f46",
+        "transaction": {
+          "signature": "2NcV5bX8mQ1wE4rT7yU0iO3pA6sD9fG2hJ5kL8zC1vB4nM7qW0eR3tY6uI9oP2aS5",
+          "status": "CONFIRMED",
+          "cluster": "devnet",
+          "slot": 328117063
+        },
+        "note": "Bounded by the signed max_penalty. The program rejects anything above it."
+      },
+      "traceId": "trace_g7h8i9"
+    },
+    {
+      "eventId": "evt_abandon_03_023",
+      "sessionId": "ses_abandon_03",
+      "occurredAt": "2026-08-21T10:00:14.640000Z",
+      "type": "BOND_REFUNDED",
+      "data": {
+        "refundedAtomic": "750000",
+        "penaltyAtomic": "250000",
+        "reason": "REMAINDER_AFTER_BOUNDED_SETTLEMENT",
+        "transaction": {
+          "signature": "2NcV5bX8mQ1wE4rT7yU0iO3pA6sD9fG2hJ5kL8zC1vB4nM7qW0eR3tY6uI9oP2aS5",
+          "status": "CONFIRMED",
+          "cluster": "devnet",
+          "slot": 328117063
+        }
+      },
+      "traceId": "trace_g7h8i9"
+    },
+    {
+      "eventId": "evt_abandon_03_024",
+      "sessionId": "ses_abandon_03",
+      "occurredAt": "2026-08-21T10:00:15.040000Z",
+      "type": "SESSION_CLOSED",
+      "data": {
+        "outcome": "VIOLATED",
+        "calls": 8,
+        "usageChargedAtomic": "8000",
+        "bondRefundedAtomic": "750000",
+        "penaltyAtomic": "250000",
+        "receiptHash": "sha256:e17b3d5a9c0f2e4b6d8a1c3e5f7b9d0a2c4e6f8b1d3a5c7e9f0b2d4a6c8e1f30"
+      },
+      "traceId": "trace_g7h8i9"
+    }
+  ]
+}
