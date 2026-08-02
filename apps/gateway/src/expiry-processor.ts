@@ -88,7 +88,7 @@ async function expireOne(dependencies: ExpiryProcessorDependencies, session: Ses
   const events: Array<Omit<BotBondEvent, "eventId" | "occurredAt">> = [
     { sessionId: session.sessionId, type: "PENALTY_SETTLED", traceId, data: { penaltyAtomic: settledAmounts.penaltyAtomic, bondRefundedAtomic: settledAmounts.bondRefundedAtomic, ...(settlement.fixtureMarker ? { fixtureMarker: settlement.fixtureMarker } : {}) } },
     { sessionId: session.sessionId, type: "RESERVATION_EXPIRED", traceId, data: { reservationId: reservation.reservationId } },
-    { sessionId: session.sessionId, type: "USAGE_SETTLED", traceId, data: { usageChargedAtomic, ...(usage.fixtureMarker ? { fixtureMarker: usage.fixtureMarker } : {}) } },
+    { sessionId: session.sessionId, type: "USAGE_SETTLED", traceId, data: { calls: session.calls, usageChargedAtomic, ...(usage.fixtureMarker ? { fixtureMarker: usage.fixtureMarker } : {}) } },
   ];
   for (const event of events) await dependencies.emit(event);
 

@@ -395,7 +395,7 @@ export async function buildApp(options: BuildOptions = {}): Promise<FastifyInsta
       await emit(session.sessionId, eventType, traceId, eventData);
     }
     if (eventType === "RESERVATION_EXPIRED" && expirySettlement && expiryUsage && expiryUsageChargedAtomic && expirySettledAmounts) {
-      await emit(session.sessionId, "USAGE_SETTLED", traceId, { usageChargedAtomic: expiryUsageChargedAtomic, fixtureMarker: expiryUsage.fixtureMarker });
+      await emit(session.sessionId, "USAGE_SETTLED", traceId, { calls: session.calls, usageChargedAtomic: expiryUsageChargedAtomic, fixtureMarker: expiryUsage.fixtureMarker });
       const receiptBody = {
         sessionId: session.sessionId,
         outcome: "EXPIRED" as const,
@@ -446,7 +446,7 @@ export async function buildApp(options: BuildOptions = {}): Promise<FastifyInsta
     } catch {
       return await abortClose(502, "INVALID_USAGE_SETTLEMENT");
     }
-    await emit(sessionId, "USAGE_SETTLED", traceId, { usageChargedAtomic, fixtureMarker: usage.fixtureMarker });
+    await emit(sessionId, "USAGE_SETTLED", traceId, { calls: session.calls, usageChargedAtomic, fixtureMarker: usage.fixtureMarker });
     let bondRefundedAtomic = "0";
     let bondReference: string | undefined;
     let bondResultMarker: "FAKE_ADAPTER_FIXTURE" | undefined;
