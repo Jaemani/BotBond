@@ -1,6 +1,6 @@
 # Live Deployment and On-chain Evidence
 
-Last verified: 2026-08-03 22:24 KST
+Last verified: 2026-08-03 22:35 KST
 
 This page records fresh public runs against the deployed services. Private scoped tokens and wallet material are intentionally omitted.
 
@@ -20,7 +20,7 @@ Current revisions:
 - Intent: `botbond-intent-agent-00004-jwj`
 - pay.sh Gate: `botbond-pay-gate-00003-zsl`
 - Cloud Run Web: `botbond-web-00005-lsb`
-- Vercel: `dpl_7uK145APH9QhCBmXUfTqmZXpNZBY`
+- Vercel: `dpl_EZywTVHMiMYkuXGvsuPgsJKWWRZb`
 
 ## Evidence validity after reproducible program deployment
 
@@ -79,7 +79,7 @@ Captured current state: [`10-live-scope-denied-eg9.png`](audit/final-product/10-
 
 ## Public-run retry policy
 
-The sponsored runner now uses a 60-second hashed-IP cooldown, a 30-run daily budget and one active execution lease. This lets a reviewer retry after a failed or completed run without opening the sponsor wallet to unbounded traffic. The change was verified by completing another fresh normal run after the previous scope-denial run:
+The sponsored runner has no per-IP cooldown. It retains a 30-run daily budget and one active execution lease so a reviewer is never asked to wait after their own completed run, while simultaneous requests cannot race the shared merchant fixture. The change was verified by completing another fresh normal run after the previous scope-denial run:
 
 - Session: `ses_public_a9c575a9-b45b-40a2-98a4-b206306cda80`
 - [Bond open](https://explorer.solana.com/tx/2qGvwN2Z3udrRAwBKCPKEPU8iCkWo24vemtuqjrndM8oZLwQRsdip9YQbR1SauiP56JpBGoXayQb3mrxhR2JyfAt?cluster=devnet) — `confirmed`
