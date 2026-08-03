@@ -289,7 +289,7 @@ export function publicDemoRunnerFromEnvironment(): PublicDemoRunner | undefined 
   const quota = new FirestorePublicDemoQuota(
     new Firestore({ projectId }),
     namespace,
-    Number(process.env.PUBLIC_DEMO_DAILY_LIMIT ?? 30),
+    Number(process.env.PUBLIC_DEMO_DAILY_LIMIT ?? 500),
     // The public hackathon demo has no per-IP wait. Daily and single-run
     // limits still protect the sponsored devnet wallet without blocking a reviewer.
     Number(process.env.PUBLIC_DEMO_COOLDOWN_MS ?? 0),

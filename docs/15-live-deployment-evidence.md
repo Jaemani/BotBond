@@ -79,7 +79,7 @@ Captured current state: [`10-live-scope-denied-eg9.png`](audit/final-product/10-
 
 ## Public-run retry policy
 
-The sponsored runner has no per-IP cooldown. It retains a 30-run daily budget and one active execution lease so a reviewer is never asked to wait after their own completed run, while simultaneous requests cannot race the shared merchant fixture. The change was verified by completing another fresh normal run after the previous scope-denial run:
+The sponsored runner has no per-IP cooldown. It retains a 500-run daily budget and one active execution lease so a reviewer is never asked to wait after their own completed run, while simultaneous requests cannot race the shared merchant fixture. The change was verified by completing another fresh normal run after the previous scope-denial run:
 
 - Session: `ses_public_a9c575a9-b45b-40a2-98a4-b206306cda80`
 - [Bond open](https://explorer.solana.com/tx/2qGvwN2Z3udrRAwBKCPKEPU8iCkWo24vemtuqjrndM8oZLwQRsdip9YQbR1SauiP56JpBGoXayQb3mrxhR2JyfAt?cluster=devnet) — `confirmed`
