@@ -1,6 +1,6 @@
 # Live Deployment and On-chain Evidence
 
-Last verified: 2026-08-03 20:37 KST
+Last verified: 2026-08-03 21:16 KST
 
 This page records fresh public runs against the deployed services. Private scoped tokens and wallet material are intentionally omitted.
 
@@ -20,7 +20,23 @@ Current revisions:
 - Intent: `botbond-intent-agent-00003-bv2`
 - pay.sh Gate: `botbond-pay-gate-00002-2pq`
 - Cloud Run Web: `botbond-web-00004-fzr`
-- Vercel: `dpl_5dR73XCyZmoPnkutHHDy2oUukbDc`
+- Vercel: `dpl_8EQUVtawFSSsbddBYBUQZZS7VGwc`
+
+## Same Gateway: direct rejection versus official scoped request
+
+This comparison was executed against the deployed Gateway on 2026-08-03 21:16 KST. It is not a fixture or a browser-only state.
+
+| Request | Result | What it proves |
+|---|---|---|
+| `GET /products` without a session | `403 UNKNOWN_AUTOMATED_CLIENT` | the unscoped route is rejected by the live Gateway and advertises `/.well-known/agent-access` |
+| `GET /v1/access/ses_public_a1d65c89-4a35-4d73-9770-85ee3a59bab8/products` with that session's scoped token | `200` with two filtered product records | the same deployed Gateway accepts the official lane only after a fresh policy and bond |
+
+The accepted session compiled policy hash `sha256:4e695728a6ecfd4dc1ddb17d33a75cb676f6cda5ada23b3eac7f82cbed935534`, metered one allowed request, then closed with a full bond return.
+
+- [Fresh bond open](https://explorer.solana.com/tx/Lo8XCv37BzGCm43Q7AAH3pXB6zxC3HHLVfemz5WXmAe6CPiXZQjc75F3j1qucqPQhsTHdSeTndgFQZ3gtmBQ6wZ?cluster=devnet) — `finalized`
+- [Fresh full refund](https://explorer.solana.com/tx/3P4YYxFir8iFbVBHQVNxzCA1o4JCva41NprAHs29xWVS2pHenMBojGswKyfxto7vtbW3Z2ShDHtqHZLz2SB215wm?cluster=devnet) — `confirmed`
+
+The receipt's usage-payment record is explicitly a `FAKE_ADAPTER_FIXTURE`; this public browser run uses the HMAC bridge. It does **not** prove MPP session payment. The separately verified hosted pay.sh sandbox evidence remains below.
 
 ## Public run: normal release and full refund
 

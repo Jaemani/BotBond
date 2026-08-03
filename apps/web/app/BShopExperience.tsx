@@ -43,6 +43,13 @@ const SCENARIOS = [
 
 export type Surface = "shop" | "agent" | "developer" | "operations";
 
+type DirectRequestEvidence = {
+  status: number;
+  statusText: string;
+  body: Record<string, unknown>;
+  traceId: string | null;
+};
+
 const BEHAVIOR_BY_SCENARIO: Record<string, PublicDemoBehavior> = {
   "01-normal-session": "normal",
   "02-scope-denied": "scope-denied",
@@ -165,15 +172,30 @@ function CartDrawer({ open, placed, onClose, onCheckout }: { open: boolean; plac
   </aside></div>;
 }
 
-function AccessDenied({ onContinue, live }: { onContinue: () => void; live: boolean }) {
+function AccessDenied({
+  onOpenLive,
+  directEvidence,
+  directRequesting,
+  onDirectRequest,
+  live,
+}: {
+  onOpenLive: () => void;
+  directEvidence: DirectRequestEvidence | null;
+  directRequesting: boolean;
+  onDirectRequest: () => void;
+  live: boolean;
+}) {
+  const responseBody = directEvidence
+    ? JSON.stringify(directEvidence.body, null, 2)
+    : "Press Send to issue a real request to the deployed BShop Gateway.";
   return (
     <main className="agent-portal">
       <div className="portal-intro"><span className="eyebrow">EXTERNAL AGENT CONSOLE · NOT THE CUSTOMER SHOP</span><h1>Buy from BShop without an API key.</h1><p>Unknown agents start with no access. Submit a bounded job and refundable bond to receive a short-lived session.</p></div>
       <div className="api-entry-grid">
         <section className="api-request-builder">
           <div className="section-head"><div><TerminalWindow /><strong>Request tester</strong></div><span className="client-badge">ProcureKit · unregistered</span></div>
-          <label>Endpoint<div className="endpoint-input"><span>GET</span><code>/products/novabook-air/inventory</code><button aria-label="Send request"><ArrowRight /></button></div></label>
-          <div className="response-block denied"><div><span>BShop automation gate · demo edge policy</span><strong>403 Forbidden</strong></div><pre>{`{\n  "error": "UNKNOWN_AUTOMATED_CLIENT",\n  "reached_botbond": false,\n  "reached_origin": false,\n  "agent_access": "/.well-known/agent-access"\n}`}</pre></div>
+          <label>Endpoint<div className="endpoint-input"><span>GET</span><code>/products</code><button aria-label="Send request to deployed gateway" onClick={onDirectRequest} disabled={directRequesting}>{directRequesting ? <ClockCountdown /> : <ArrowRight />}</button></div></label>
+          <div className={`response-block ${directEvidence?.status === 403 ? "denied" : "pending"}`}><div><span>Deployed BShop Gateway · direct request</span><strong>{directEvidence ? `${directEvidence.status} ${directEvidence.statusText}` : "Awaiting request"}</strong></div><pre>{responseBody}</pre>{directEvidence?.traceId && <small>Cloud trace: {directEvidence.traceId.slice(0, 16)}…</small>}</div>
         </section>
         <aside className="official-lane">
           <span className="official-icon"><ShieldCheck weight="duotone" /></span>
@@ -181,7 +203,7 @@ function AccessDenied({ onContinue, live }: { onContinue: () => void; live: bool
           <h2>Restricted access is available.</h2>
           <p>BShop accepts unknown agents when purpose, cost and behavior are bounded in advance.</p>
           <ul><li><Check /> No account or API-key review</li><li><Check /> Merchant-specific least privilege</li><li><Check /> Refundable on-chain bond</li></ul>
-          <button className="primary-action" onClick={onContinue} disabled={live}><LockKey /> {live ? "Waiting for live gateway events" : "Request bounded access"}<ArrowRight /></button>
+          <button className="primary-action" onClick={onOpenLive} disabled={live || directRequesting}><LockKey /> {live ? "Waiting for live gateway events" : "Open a live bounded session"}<ArrowRight /></button>
           <div className="discovery-note"><Code /> Discovered at <code>/.well-known/agent-access</code></div>
         </aside>
       </div>
@@ -189,7 +211,7 @@ function AccessDenied({ onContinue, live }: { onContinue: () => void; live: bool
   );
 }
 
-function RequestBoundary({ v, stage, live }: { v: ViewState; stage: number; live: boolean }) {
+function RequestBoundary({ v, stage, live, directAttempted }: { v: ViewState; stage: number; live: boolean; directAttempted: boolean }) {
   const latest = v.deniedCount > 0
     ? [...v.trace].reverse().find((row) => row.kind === "DENIED")
     : v.trace.at(-1);
@@ -197,7 +219,7 @@ function RequestBoundary({ v, stage, live }: { v: ViewState; stage: number; live
   const originReached = latest && !denied && stage >= 4;
   const nodes = [
     { label: "External agent", detail: live ? "Live sponsored client" : "Recorded client", state: "active" },
-    { label: "Edge policy", detail: stage === 1 ? "Demo 403 · stopped here" : "Official route allowed", state: stage === 1 ? "blocked" : "passed" },
+    { label: "Edge policy", detail: stage === 1 ? directAttempted ? "GET /products → 403 here" : "Direct request not sent" : "Official route allowed", state: stage === 1 ? directAttempted ? "blocked" : "idle" : "passed" },
     { label: "BotBond Gateway", detail: stage < 2 ? "Not reached" : denied ? "Scope blocked here" : stage >= 4 ? "Session enforced" : "Negotiating scope", state: stage < 2 ? "idle" : denied ? "blocked" : "passed" },
     { label: "BShop Origin API", detail: originReached ? "Reached with filtered fields" : "Not reached", state: originReached ? "passed" : "idle" },
   ];
@@ -342,6 +364,8 @@ export function BShopExperience({ initialSurface = "shop" }: { initialSurface?: 
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [publicRunProgress, setPublicRunProgress] = useState<string | null>(null);
   const [publicRunError, setPublicRunError] = useState<string | null>(null);
+  const [directEvidence, setDirectEvidence] = useState<DirectRequestEvidence | null>(null);
+  const [directRequesting, setDirectRequesting] = useState(false);
 
   useEffect(() => {
     const stream = liveStreamFromLocation();
@@ -409,6 +433,25 @@ export function BShopExperience({ initialSurface = "shop" }: { initialSurface?: 
       setPublicRunProgress(null);
     }
   };
+  const runDirectRequest = async () => {
+    if (directRequesting) return;
+    setDirectRequesting(true);
+    setDirectEvidence(null);
+    try {
+      const response = await fetch("/gateway/products", { cache: "no-store" });
+      const body = await response.json().catch(() => ({ error: { code: "UNPARSEABLE_RESPONSE" } })) as Record<string, unknown>;
+      setDirectEvidence({
+        status: response.status,
+        statusText: response.statusText || (response.status === 403 ? "Forbidden" : response.ok ? "OK" : "Request failed"),
+        body,
+        traceId: response.headers.get("x-cloud-trace-context"),
+      });
+    } catch (cause) {
+      setDirectEvidence({ status: 0, statusText: "Network error", body: { error: String(cause) }, traceId: null });
+    } finally {
+      setDirectRequesting(false);
+    }
+  };
   const navigateSurface = (next: Surface) => {
     setSurface(next);
     const paths: Record<Surface, string> = { shop: "/shop", agent: "/agent", operations: "/merchant", developer: "/integrate" };
@@ -421,8 +464,8 @@ export function BShopExperience({ initialSurface = "shop" }: { initialSurface?: 
       <CommerceHeader surface={surface} setSurface={navigateSurface} live={Boolean(live)} liveStatus={player.liveStatus} />
       {loadError && <div className="load-error">Could not load demo evidence: {loadError}</div>}
       {surface === "shop" && <Storefront stock={stock} onAddToCart={() => { setOrderPlaced(false); setCartOpen(true); }} onAgentAccess={() => navigateSurface("agent")} />}
-      {surface === "agent" && <div className="agent-surface"><div className="role-ribbon agent"><TerminalWindow weight="fill" /> EXTERNAL AGENT CONSOLE <span>Machine client path</span></div><AgentRunSelector scenarioId={scenarioId} onChange={changeScenario} disabled={Boolean(live) || player.playing || Boolean(publicRunProgress)} onRunLive={runLive} progress={publicRunProgress} error={publicRunError} /><ExecutionTruth live={Boolean(live)} /><RequestBoundary v={v} stage={stage} live={Boolean(live)} />
-        {stage === 1 && <AccessDenied onContinue={() => player.seek(positions.intent)} live={Boolean(live)} />}
+      {surface === "agent" && <div className="agent-surface"><div className="role-ribbon agent"><TerminalWindow weight="fill" /> EXTERNAL AGENT CONSOLE <span>Machine client path</span></div><AgentRunSelector scenarioId={scenarioId} onChange={changeScenario} disabled={Boolean(live) || player.playing || Boolean(publicRunProgress)} onRunLive={runLive} progress={publicRunProgress} error={publicRunError} /><ExecutionTruth live={Boolean(live)} /><RequestBoundary v={v} stage={stage} live={Boolean(live)} directAttempted={Boolean(directEvidence)} />
+        {stage === 1 && <AccessDenied onOpenLive={runLive} directEvidence={directEvidence} directRequesting={directRequesting} onDirectRequest={runDirectRequest} live={Boolean(live)} />}
         {stage === 2 && <IntentRequest v={v} onCompile={() => player.seek(positions.policy)} live={Boolean(live)} />}
         {stage === 3 && <AccessContract v={v} onActivate={() => player.seek(positions.active)} live={Boolean(live)} />}
         {stage === 4 && <ActiveSession v={v} onRun={player.play} playing={player.playing} onPause={player.pause} scenarioId={scenarioId} live={Boolean(live)} />}

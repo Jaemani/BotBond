@@ -17,6 +17,7 @@ The product now reads as a merchant-installed agent-access system instead of a p
 5. **Live scope denial — healthy after fix.** `05-live-scope-denied-receipt.png` shows Gateway stop, Origin not reached, one denied request, zero penalty, full devnet-token refund, receipt hash, and two confirmed Explorer links.
 6. **Live TTL settlement — healthy after fix.** `06-live-abandon-settlement.png` shows objective expiry, 0.25 bounded settlement, 0.75 refund, receipt hash, and confirmed Explorer links.
 7. **Live normal refund — healthy.** `07-live-normal-refund.png` shows allowed calls, normal reservation release, zero penalty, full refund, receipt hash, and confirmed Explorer links.
+8. **Live direct rejection — healthy.** `08-live-direct-403.png` is a browser capture of the deployed Gateway response, including the returned `403 UNKNOWN_AUTOMATED_CLIENT`, discovery route, and Cloud trace identifier. It is not the prior hardcoded request-preview state.
 
 ## Fixes found through the audit
 
