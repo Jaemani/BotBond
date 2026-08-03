@@ -2,6 +2,8 @@
 
 현재 `botbond-deck.pdf`의 핵심 포지셔닝은 유지한다. 특히 3장의 대안 비교와 4장의 WAF 뒤 도입 구조는 맞다. 아래 세 가지만 보강하면 소개서와 실제 제품이 같은 주장을 하게 된다.
 
+최종 장표 원고는 [18-project-deck-v2.md](18-project-deck-v2.md)를 기준으로 한다.
+
 ## 소개서 보강
 
 ### 3장 — Cloudflare와의 관계를 한 문장으로 고정
@@ -71,7 +73,7 @@ External agent       → discovery + own wallet → Gateway
 
 - Integrate 화면의 discovery URL과 한 줄 CLI
 - “누구나 자기 devnet 지갑으로 재현 가능”
-- “Solana는 live devnet, usage credential은 현재 labelled demo bridge”를 짧게 명시
+- “Solana는 live devnet, pay.sh는 hosted x402 sandbox, session activation credential은 labelled HMAC demo bridge”를 짧게 명시
 
 ## 촬영 체크
 
@@ -80,4 +82,3 @@ External agent       → discovery + own wallet → Gateway
 - session ID, policy hash, 두 signature가 같은 실행에 속하는지 확인
 - 성공/차단/정산을 전부 보여주되 차단만으로 bond가 움직이지 않는 장면을 포함
 - 60초 TTL이 길면 정상 refund를 본 시연으로 쓰고, bounded settlement는 별도 짧은 증거 클립 또는 최신 실제 이력으로 보충
-

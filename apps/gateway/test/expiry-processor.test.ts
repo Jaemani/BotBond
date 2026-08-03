@@ -49,7 +49,8 @@ describe("reservation expiry processor", () => {
 
     expect(result[0]?.status).toBe("EXPIRED");
     expect((await repository.getSession(session.sessionId))?.state).toBe("EXPIRED");
-    expect(events.map((event) => event.type)).toEqual(["RESERVATION_EXPIRED", "PENALTY_SETTLED", "USAGE_SETTLED"]);
+    expect(events.map((event) => event.type)).toEqual(["RESERVATION_EXPIRED", "PENALTY_SETTLED", "USAGE_SETTLED", "SESSION_CLOSED"]);
+    expect(events.at(-1)?.data.receiptHash).toMatch(/^sha256:/);
   });
 
   it("finds expired reservations, restores inventory, settles, and is idempotent", async () => {
@@ -81,7 +82,8 @@ describe("reservation expiry processor", () => {
     expect(second).toEqual([]);
     expect((await commerce.getInventory("lap-1")).stock).toBe(before);
     expect((await repository.getSession(session.sessionId))?.state).toBe("EXPIRED");
-    expect(events.map((event) => event.type)).toEqual(["RESERVATION_EXPIRED", "PENALTY_SETTLED", "USAGE_SETTLED"]);
+    expect(events.map((event) => event.type)).toEqual(["RESERVATION_EXPIRED", "PENALTY_SETTLED", "USAGE_SETTLED", "SESSION_CLOSED"]);
+    expect(events.at(-1)?.data.receiptHash).toMatch(/^sha256:/);
     const attempts = await repository.listSettlementAttempts(session.sessionId);
     expect(attempts).toHaveLength(1);
     expect(attempts[0]).toMatchObject({

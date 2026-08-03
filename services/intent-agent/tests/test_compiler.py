@@ -223,6 +223,42 @@ async def test_caps_are_clamped_by_catalog_and_user(catalog: dict[str, Any]) -> 
 
 
 @pytest.mark.asyncio
+async def test_bonded_reservation_adds_catalog_lifecycle_controls(
+    catalog: dict[str, Any],
+) -> None:
+    catalog["operations"].extend(
+        [
+            {
+                "id": "release-reservation",
+                "method": "POST",
+                "pathTemplate": "/reservations/{id}/release",
+                "fields": ["reservationId", "state"],
+                "maxCalls": 1,
+                "riskTier": "LOW",
+            },
+            {
+                "id": "expire-reservation",
+                "method": "POST",
+                "pathTemplate": "/reservations/{id}/expire",
+                "fields": ["reservationId", "state"],
+                "maxCalls": 2,
+                "riskTier": "LOW",
+            },
+        ]
+    )
+    provider = FakeProposalProvider()
+    compiler = IntentCompiler(provider, now=lambda: FIXED_NOW)
+    result = await compiler.compile(
+        make_request(catalog, "Compare stock and reserve the best item")
+    )
+
+    paths = {operation.pathTemplate for operation in result.policy.allowedOperations}
+    assert "/reservations" in paths
+    assert "/reservations/{id}/release" in paths
+    assert "/reservations/{id}/expire" in paths
+
+
+@pytest.mark.asyncio
 async def test_catalog_external_endpoint_repairs_then_fails(catalog: dict[str, Any]) -> None:
     provider = SequenceProvider([proposal("invented-admin")])
     compiler = IntentCompiler(provider, now=lambda: FIXED_NOW)

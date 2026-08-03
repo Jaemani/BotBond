@@ -44,6 +44,21 @@ describe("Role A/B event compatibility", () => {
     expect(inSession.lastBondDeltaWasZeroOnDenial).toBe(true);
   });
 
+  it("does not regress an active session when confirmed bond evidence arrives later", () => {
+    const state = replay([
+      event("BOND_OPENED", { status: "CONFIRMED", bondAccount: "bond-1" }),
+      event("SESSION_ACTIVATED", { expiresAt: "2026-08-21T10:05:00Z" }, "2026-08-21T10:00:01Z"),
+      event("BOND_OPENED", {
+        status: "CONFIRMED",
+        transaction: { signature: "5RealSolanaSignature", status: "CONFIRMED", cluster: "devnet" },
+      }, "2026-08-21T10:00:02Z"),
+      event("REQUEST_DENIED", { method: "GET", path: "/seller-contacts", reason: "OPERATION_NOT_ALLOWED" }, "2026-08-21T10:00:03Z"),
+    ], 4);
+    expect(state.sessionState).toBe("ACTIVE");
+    expect(state.deniedCount).toBe(1);
+    expect(state.trace.at(-1)?.headline).toBe("Denied");
+  });
+
   it("accumulates canonical per-call charges when usage total is absent", () => {
     const state = replay([
       event("REQUEST_ALLOWED", { chargedAtomic: "1000" }),

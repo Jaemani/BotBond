@@ -29,6 +29,7 @@
     "demo:live": "tsx scripts/live-demo.ts",
     "demo:setup-public": "tsx scripts/setup-public-demo.ts",
     "example:external-agent": "tsx examples/external-agent/index.ts",
+    "verify:public-run": "tsx scripts/verify-public-run.ts",
     "fixtures:demo": "python3 packages/demo-fixtures/generate.py && cp packages/demo-fixtures/01-normal-session.json packages/demo-fixtures/02-scope-denied.json packages/demo-fixtures/03-abandoned-reservation.json packages/demo-fixtures/index.json apps/web/public/fixtures/"
   },
   "devDependencies": {

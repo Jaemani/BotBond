@@ -8,10 +8,10 @@ BotBond는 사이트가 처음 보는 AI 에이전트에게도 **서명된 사�
 
 1. 에이전트가 자연어로 작업 목적을 제시한다.
 2. Gemini가 목적을 기계 집행 가능한 정책으로 컴파일한다.
-3. 에이전트가 사람의 추가 승인 없이 pay.sh 결제 세션과 Solana 보증금을 연다.
-4. 일반 데이터 호출은 pay.sh로 사용료가 정산되고, 재고 예약처럼 merchant 비용을 발생시키는 행동은 Solana bond로 담보된다.
+3. 에이전트가 사람의 추가 승인 없이 pay.sh x402 sandbox 호출을 결제하고 Solana devnet 보증금을 연다.
+4. 일반 데이터 호출은 pay.sh의 per-call rail을 통과하고, 재고 예약처럼 merchant 비용을 발생시키는 행동은 별도 Solana bond로 담보된다.
 5. 범위 밖 호출은 결정론적으로 차단하되 그것만으로 bond를 차감하지 않는다. 실제 예약을 방치하는 등 서명된 객관적 의무를 어겼을 때만 제한 정산한다.
-6. 모든 결제와 상태 변화가 데모 화면과 Solana Explorer에서 확인된다.
+6. pay.sh의 `402 → sandbox pay → 200` 결과와 Solana의 bond open·refund·bounded settlement를 각각 확인한다.
 
 ## 이번에 주장하지 않을 것
 
@@ -27,6 +27,7 @@ BotBond는 사이트가 처음 보는 AI 에이전트에게도 **서명된 사�
 - BShop product demo: https://botbond-bshop.vercel.app
 - Cloud Run Web fallback: https://botbond-web-752329931962.us-central1.run.app
 - Agent discovery: https://botbond-gateway-752329931962.us-central1.run.app/.well-known/agent-access
+- Hosted pay.sh x402 sandbox gate: https://botbond-pay-gate-752329931962.us-central1.run.app
 - Solana program: https://explorer.solana.com/address/HoamYxgGuZoQerLGthZK8K4vLKTvEraZ4o7N8fkjk4bc?cluster=devnet
 - Latest verified run: [docs/15-live-deployment-evidence.md](docs/15-live-deployment-evidence.md)
 
@@ -54,7 +55,7 @@ npm run demo:live
 
 The command creates a new policy with Vertex AI, opens a new Solana devnet bond, exercises allowed and denied Gateway calls, waits for the real reservation TTL, restores inventory, and performs bounded settlement. It writes the private live URL to `.secrets/live-demo-session.json`; that file is gitignored.
 
-Payment claim boundary: pay.sh x402 per-call payment is verified against its sandbox rail. The deployed Gateway currently activates sessions through an HMAC adapter marked `FAKE_ADAPTER_FIXTURE`; it must not be described as live pay.sh credential verification.
+Payment claim boundary: the hosted pay.sh gate performs a real x402 sandbox `402 → payment → scoped API response` flow. The Gateway still activates the surrounding BotBond session through an HMAC adapter marked `FAKE_ADAPTER_FIXTURE`; it must not be described as live pay.sh session-credential verification or an MPP capped session.
 
 External developers can run the complete flow with their own devnet wallet and no BotBond server secret. See [Bring your agent](docs/16-bring-your-agent.md) or run:
 
@@ -64,11 +65,12 @@ npm run example:external-agent -- \
   --wallet ~/.config/solana/id.json
 ```
 
-The Vercel demo is organized as three real product surfaces rather than a presentation rail:
+The Vercel demo is organized as four product surfaces rather than a presentation rail:
 
 - `Shop`: ordinary product browsing and human checkout
 - `Agent API`: unknown-client `403`, official discovery, bounded access, and agent behavior
 - `Merchant Ops`: shared inventory, allowed/denied requests, expiry, penalty, and refund
+- `Integrate`: discovery, public endpoints, and the external-agent command
 
 ## 문서 읽는 순서
 
@@ -109,7 +111,7 @@ botbond/
 라이브 데모에서 하나의 버튼 또는 명령으로 다음이 3분 내 실행돼야 한다.
 
 - Intent 컴파일
-- pay.sh 유료 세션 개설 또는 실제 과금 호출
+- pay.sh x402 sandbox의 실제 유료 호출
 - Solana devnet 보증금 예치
 - 정상 세션의 사용료 정산·예약 해제·bond 반환
 - 범위 위반 호출 차단과 예약 방치 세션의 제한 정산

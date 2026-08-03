@@ -146,5 +146,11 @@ async function expireOne(dependencies: ExpiryProcessorDependencies, session: Ses
   const expiredSession = await dependencies.repository.transitionSession(session.sessionId, "SETTLING", "EXPIRED");
   expiredSession.receipt = receipt;
   await dependencies.repository.saveSession(expiredSession);
+  await dependencies.emit({
+    sessionId: session.sessionId,
+    type: "SESSION_CLOSED",
+    traceId,
+    data: { outcome: "EXPIRED", receiptHash: receipt.receiptHash },
+  });
   return { reservationId: reservation.reservationId, status: "EXPIRED", receipt };
 }

@@ -138,6 +138,30 @@ def _validate_and_build_policy(
         )
         selected_by_id[proposed.operationId] = (catalog_operation, max_calls)
 
+    # A bonded reservation is unsafe unless the policy can also release it and
+    # deterministically process expiry. These are lifecycle controls, not extra
+    # business permissions, so enforce them from the merchant catalog even when
+    # the model omits them from its proposal.
+    if "reserve-inventory" in selected_by_id:
+        for lifecycle_id in ("release-reservation", "expire-reservation"):
+            if lifecycle_id in selected_by_id:
+                continue
+            lifecycle_operation = catalog_by_id.get(lifecycle_id)
+            if lifecycle_operation is None:
+                continue
+            allowed_operations.append(
+                AllowedOperation(
+                    method=lifecycle_operation.method,
+                    pathTemplate=lifecycle_operation.pathTemplate,
+                    allowedResponseFields=list(lifecycle_operation.fields),
+                    maxCalls=lifecycle_operation.maxCalls,
+                )
+            )
+            selected_by_id[lifecycle_id] = (
+                lifecycle_operation,
+                lifecycle_operation.maxCalls,
+            )
+
     sum_operation_calls = sum(operation.maxCalls for operation in allowed_operations)
     max_total_calls = _clamp_int(
         proposal.maxTotalCalls,

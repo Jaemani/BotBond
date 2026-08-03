@@ -154,7 +154,7 @@ class SolanaPublicDemoRunner implements PublicDemoRunner {
   async createRun(input: Parameters<PublicDemoRunner["createRun"]>[0]): Promise<PublicDemoRun> {
     const lease = await this.quota.claim(input.clientFingerprint);
     try {
-      const task = "Compare laptop price and live inventory, reserve the best last unit, and do not access seller contacts or customer reviews.";
+      const task = "Compare laptop price and live inventory, reserve the best last unit, release it after the comparison, and do not access seller contacts or customer reviews.";
       const intent = parseJson<{
         intentId: string;
         policyHash: string;
@@ -174,7 +174,13 @@ class SolanaPublicDemoRunner implements PublicDemoRunner {
         payload: {
           task,
           agentWallet: this.payer.publicKey.toBase58(),
-          budget: { usageCapAtomic: "200000", bondCapAtomic: "1000000" },
+          // Keep the sponsored video path within the three-minute submission
+          // limit even when Gemini proposes the merchant's longer default TTL.
+          budget: {
+            usageCapAtomic: "200000",
+            bondCapAtomic: "1000000",
+            maxSessionTtlSeconds: 60,
+          },
         },
       }), "PUBLIC_DEMO_INTENT");
       if (intent.policy.bondedActions.length === 0) throw new Error("PUBLIC_DEMO_BONDED_POLICY_REQUIRED");

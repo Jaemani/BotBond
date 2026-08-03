@@ -59,8 +59,8 @@ open BotBond bond on Solana devnet
 POST /v1/payment-challenges
 POST /v1/devnet/payment-credentials
 POST /v1/sessions
-GET  /v1/access/:sessionId/products
-GET  /v1/access/:sessionId/products/lap-2/inventory
+pay.sh x402 sandbox GET /v1/access/:sessionId/products
+pay.sh x402 sandbox GET /v1/access/:sessionId/products/lap-2/inventory
 POST /v1/access/:sessionId/reservations
 POST /v1/access/:sessionId/reservations/:id/release
 POST /v1/sessions/:sessionId/close
@@ -117,17 +117,17 @@ Origin은 인터넷에서 직접 접근되지 않도록 하고 Gateway service i
 
 ## 5. 현재 결제 경계
 
-Solana bond open·refund·bounded settlement는 실제 devnet 트랜잭션이다. 반면 배포된 세션 사용료 credential은 `HMAC_DEMO_BRIDGE`다. pay.sh x402 rail은 sandbox에서 검증했지만 이 공개 배포의 credential verification 자체가 live pay.sh라고 주장하지 않는다.
+Solana bond open·refund·bounded settlement는 실제 devnet 트랜잭션이다. pay.sh x402 rail도 공개 Cloud Run gate에서 실제 sandbox `402 → payment → scoped API 200`으로 실행한다. 반면 BotBond 세션을 활성화하는 credential 자체는 여전히 `HMAC_DEMO_BRIDGE`다. 따라서 이를 live pay.sh session verification이나 MPP capped session이라고 주장하지 않는다.
 
 운영 전환 시 교체 지점은 `PaymentAdapter` 하나다.
 
 ```text
-현재 데모: /v1/devnet/payment-credentials → HMAC demo credential
-운영 목표: pay.sh/x402 결제 확인 → production credential
+현재 데이터 호출: hosted pay.sh x402 sandbox gate
+현재 세션 활성화: /v1/devnet/payment-credentials → HMAC demo credential
+운영 목표: pay.sh 결제 증거를 직접 검증하는 production session credential
 그 이후 policy, Gateway enforcement, bond program, receipt 구조는 동일
 ```
 
 ## 6. 테스트 토큰 주의
 
 공개 실행기와 외부 예제의 SPL token은 devnet 테스트 자산이며 USDC가 아니다. 화면의 금액 단위는 계약 계산을 설명하기 위한 6-decimal demo unit이다. 실제 배포에서는 운영자가 허용한 stablecoin mint만 Gateway와 프로그램 계층에서 검증해야 한다.
-

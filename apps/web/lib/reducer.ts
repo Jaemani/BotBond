@@ -162,7 +162,12 @@ export function applyEvent(prev: ViewState, e: BotBondEvent): ViewState {
       s.bondAmountAtomic = num(d.bondAmountAtomic, s.bondAmountAtomic);
       s.maxPenaltyAtomic = num(d.maxPenaltyAtomic, s.maxPenaltyAtomic);
       s.bondPhase = "LOCKED";
-      s.sessionState = "BONDED";
+      // A sponsored run emits a second BOND_OPENED event when the confirmed
+      // Explorer transaction is attached. Evidence enrichment must not move an
+      // already-active or terminal session backwards in its lifecycle.
+      if (!["ACTIVE", "EXPIRED", "VIOLATED", "CLOSED"].includes(prev.sessionState)) {
+        s.sessionState = "BONDED";
+      }
       s.txs = pushTx(s.txs, "Bond locked", d.transaction, d.fixtureMarker);
       s.txs = pushProviderReference(s.txs, "Bond locked", d);
       return s;
@@ -316,7 +321,7 @@ export function applyEvent(prev: ViewState, e: BotBondEvent): ViewState {
           id: e.eventId,
           kind: "SETTLEMENT",
           headline: "Usage settled",
-          detail: `pay.sh · ${num(d.calls)} calls`,
+          detail: `Gateway metering · ${num(d.calls)} calls · pay.sh rail is sandbox-only in this deployment`,
           bondUnchanged: true,
           at: e.occurredAt,
         },

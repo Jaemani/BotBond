@@ -237,6 +237,7 @@ export async function buildApp(options: BuildOptions = {}): Promise<FastifyInsta
       mode: "LOCAL_HMAC_CREDENTIAL_BRIDGE",
       railEvidence: "SANDBOX_VERIFIED",
       integration: "FAKE_ADAPTER_FIXTURE",
+      ...(process.env.PAY_GATE_URL ? { sandboxPayGateUrl: process.env.PAY_GATE_URL } : {}),
       ...(publicDemoRunner ? { devnetCredentialEndpoint: "/v1/devnet/payment-credentials" } : {}),
     },
     bond: {
@@ -739,6 +740,10 @@ export async function buildApp(options: BuildOptions = {}): Promise<FastifyInsta
       const expiredSession = await repository.transitionSession(session.sessionId, "SETTLING", "EXPIRED");
       expiredSession.receipt = { ...receiptBody, receiptHash: sha256Hash(receiptBody) };
       await repository.saveSession(expiredSession);
+      await emit(session.sessionId, "SESSION_CLOSED", traceId, {
+        outcome: "EXPIRED",
+        receiptHash: expiredSession.receipt.receiptHash,
+      });
       payload = { ...(payload as object), receipt: expiredSession.receipt };
     }
     return filterFields(payload, operation.allowedResponseFields);

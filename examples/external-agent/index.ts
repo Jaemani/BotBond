@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import * as anchor from "@coral-xyz/anchor";
 import {
@@ -38,12 +39,13 @@ async function requestJson<T>(path: string, init: RequestInit = {}): Promise<T> 
 
 const discovery = await requestJson<{
   bond: { programId: string; publicDemoMerchant?: string };
-  payment: { devnetCredentialEndpoint?: string };
+  payment: { devnetCredentialEndpoint?: string; sandboxPayGateUrl?: string };
 }>("/.well-known/agent-access");
 if (!discovery.payment.devnetCredentialEndpoint) throw new Error("DEVNET_CREDENTIAL_ENDPOINT_NOT_AVAILABLE");
 if (!discovery.bond.publicDemoMerchant) throw new Error("PUBLIC_DEMO_MERCHANT_NOT_PUBLISHED");
+if (!discovery.payment.sandboxPayGateUrl) throw new Error("PAY_SH_SANDBOX_GATE_NOT_PUBLISHED");
 
-const task = "Compare laptop price and live inventory, reserve one last unit, and do not access seller contacts or reviews.";
+const task = "Compare laptop price and live inventory, reserve one last unit, release it after the comparison, and do not access seller contacts or reviews.";
 const intent = await requestJson<{
   intentId: string;
   policyHash: string;
@@ -107,8 +109,19 @@ const session = await requestJson<{ token: string }>("/v1/sessions", {
   }),
 });
 const headers = { "x-botbond-session-token": session.token };
-await requestJson(`/v1/access/${sessionId}/products`, { headers });
-await requestJson(`/v1/access/${sessionId}/products/lap-2/inventory`, { headers });
+const paidGet = (path: string): void => {
+  execFileSync("npx", [
+    "-y",
+    "@solana/pay",
+    "--sandbox",
+    "curl",
+    `${discovery.payment.sandboxPayGateUrl}${path}`,
+    "-H",
+    `x-botbond-session-token: ${session.token}`,
+  ], { stdio: "inherit" });
+};
+paidGet(`/v1/access/${sessionId}/products`);
+paidGet(`/v1/access/${sessionId}/products/lap-2/inventory`);
 const reservation = await requestJson<{ reservationId: string }>(`/v1/access/${sessionId}/reservations`, {
   method: "POST",
   headers,
@@ -137,6 +150,7 @@ console.log(JSON.stringify({
   sessionId,
   policyHash: intent.policyHash,
   paymentMode: credential.mode,
+  payShRail: "x402 sandbox payment completed for scoped product and inventory calls",
   bondOpen: explorerTxUrl(opened.signature, "devnet"),
   settlement: explorerTxUrl(settlement, "devnet"),
   outcome: receipt.outcome,
