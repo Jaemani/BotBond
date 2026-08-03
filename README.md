@@ -31,6 +31,7 @@ BotBond는 사이트가 처음 보는 AI 에이전트에게도 **서명된 사�
 5. [3인 역할과 협업 방식](docs/05-team-plan.md)
 6. [Claude/Antigravity 역할별 시작 프롬프트](docs/06-claude-kickoff-prompts.md)
 7. [결정 로그](docs/00-decision-log.md)
+8. [제출 소개서·데모 영상·재현 가이드](docs/14-team-demo-and-pitch-flow.md)
 
 ## 권장 저장소 구조
 
