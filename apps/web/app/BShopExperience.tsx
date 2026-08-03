@@ -541,6 +541,14 @@ export function BShopExperience({ initialSurface = "overview" }: { initialSurfac
     const url = new URL(paths[next], window.location.origin);
     window.history.replaceState({}, "", url);
   };
+  const startAnotherSession = () => {
+    player.reset();
+    setLive(null);
+    setPublicRunProgress(null);
+    setPublicRunError(null);
+    setDirectEvidence(null);
+    navigateSurface("agent");
+  };
 
   return (
     <div className="app-shell">
@@ -553,7 +561,7 @@ export function BShopExperience({ initialSurface = "overview" }: { initialSurfac
         {stage === 2 && <IntentRequest v={v} onCompile={() => player.seek(positions.policy)} live={Boolean(live)} />}
         {stage === 3 && <AccessContract v={v} onActivate={() => player.seek(positions.active)} live={Boolean(live)} />}
         {stage === 4 && <ActiveSession v={v} onRun={player.play} playing={player.playing} onPause={player.pause} scenarioId={scenarioId} live={Boolean(live)} />}
-        {stage === 5 && <SettlementReceipt v={v} fixtureMode={v.fixtureMode} onReset={player.reset} />}
+        {stage === 5 && <SettlementReceipt v={v} fixtureMode={v.fixtureMode} onReset={startAnotherSession} />}
       </div>}
       {surface === "developer" && <DeveloperIntegration onOpenAgent={() => navigateSurface("agent")} />}
       {surface === "operations" && <MerchantOperations v={v} onOpenAgent={() => navigateSurface("agent")} />}
