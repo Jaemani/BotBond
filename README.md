@@ -143,6 +143,7 @@ Only the external own-wallet path makes the pay.sh sandbox payment. Both paths c
 9. [라이브 배포 및 온체인 증거](docs/15-live-deployment-evidence.md)
 10. [외부 에이전트 공개 연동](docs/16-bring-your-agent.md)
 11. [소개서·3분 영상 보완안](docs/17-deck-and-video-delta.md)
+12. [제출 폼 문안과 주요 기술 스택](docs/18-submission-form-copy.md)
 
 ## 권장 저장소 구조
 
