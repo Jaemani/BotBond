@@ -256,15 +256,14 @@ GET /v1/access/:sessionId/products</pre><p>정책 hash로 devnet bond를 연 뒤
 # 정산 결과는 Solana Explorer에서 누구나 확인합니다
 
 <div class="grid2">
-<div><img class="screen explorer" src="../docs/audit/final-product/12-solana-explorer-bond-open.png" /><p class="screen-caption">현재 program <code>EG9r…KaRKR</code>에서 만든 devnet bond-open transaction</p></div>
+<div><img class="screen explorer" src="../docs/audit/final-product/14-own-wallet-refund.png" /><p class="screen-caption">own-wallet 실행의 refund transaction · <code>Success / Finalized</code> · BotBond program log</p></div>
 <div>
 <h3>확인 순서</h3>
-<p>1. BotBond 영수증의 <strong>Bond locked</strong> 또는 <strong>Bond returned</strong> Explorer 링크를 엽니다.</p>
-<p>2. Explorer 상단에서 <strong>Success / Finalized</strong> 상태와 transaction signature를 확인합니다.</p>
-<p>3. Accounts &amp; SOL Balance에서 계정 변화를, Programs &amp; Logs에서 BotBond program 실행 기록을 봅니다.</p>
-<h3>이 화면이 보여 주는 것</h3>
-<p>담보 잠금·반환·제한 정산은 운영자 대시보드의 숫자만이 아니라 공개 devnet transaction으로 검증됩니다.</p>
-<p class="muted">이 캡처는 devnet test mint 기준입니다. pay.sh 반복 세션 검증이나 실제 USDC 거래를 뜻하지 않습니다.</p>
+<p>영수증의 <strong>Bond locked</strong> 또는 <strong>Bond returned</strong> 링크를 열어 <strong>Success / Finalized</strong>, transaction signature, 계정 변화와 BotBond program log를 확인합니다.</p>
+<h3>이번 own-wallet 실행 결과</h3>
+<p>pay.sh sandbox 결제 후 상품·재고 호출이 성공했습니다. usage <code>4000</code>, bond refund <code>1000000</code> atomic units가 기록됐습니다.</p>
+<p><a href="https://explorer.solana.com/tx/4Pzk9C8wEpdyTDEPPCAPj347AqubcSjS97PY1sse7UwfGE2rYGyuKdQyuzLGh69Kb8XVuSh4CsCbsKBXcLRoFLmJ?cluster=devnet">Bond open Explorer</a> · <a href="https://explorer.solana.com/tx/2yiuVP6nxnW4xdb3LfdhyPhEbKkazeyFaCQvuX62WTUpgjcTDzzZxN2yX7nPb9gVf2EW3vLjseUc9ADXnjy81fFM?cluster=devnet">Refund Explorer</a></p>
+<p class="muted">devnet test mint 기준입니다. session credential은 HMAC demo bridge이며, 실제 USDC 거래나 pay.sh 반복 세션 검증을 뜻하지 않습니다.</p>
 </div>
 </div>
 

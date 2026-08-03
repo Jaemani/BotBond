@@ -85,6 +85,20 @@ The sponsored runner has no per-IP cooldown. It retains a 500-run daily budget a
 - [Bond open](https://explorer.solana.com/tx/2qGvwN2Z3udrRAwBKCPKEPU8iCkWo24vemtuqjrndM8oZLwQRsdip9YQbR1SauiP56JpBGoXayQb3mrxhR2JyfAt?cluster=devnet) — `confirmed`
 - [Bond returned](https://explorer.solana.com/tx/4tisLcC942W3EJHEo7FVjsfjHWdZq9wKwSy4CjJ2bDcqJvWQ56qDn1kaK4i7vbMwrBRpN1qqR62HcsVcmMHh6P8K?cluster=devnet) — `confirmed`
 
+## Current own-wallet pay.sh sandbox run
+
+Executed on 2026-08-03 with a funded external devnet wallet and the deployed `EG9…` program:
+
+- Agent wallet: `3ryJes8EAX6j2BhDYwCZYyfF9zNhFbTrQiPx2iqAqTtc`
+- Session: `ses_external_df9bf354-f6a5-4fab-9a9e-9fff538ccd98`
+- Policy hash: `sha256:506f42879f6617e4c6ad4069bc9535b51c765ead76a315b2148acf965dd42a8e`
+- pay.sh result: hosted x402 sandbox payment completed before scoped product and inventory responses
+- Outcome: `CLOSED`; usage charged `4000` atomic units; bond refunded `1000000` atomic units
+- [Bond open](https://explorer.solana.com/tx/4Pzk9C8wEpdyTDEPPCAPj347AqubcSjS97PY1sse7UwfGE2rYGyuKdQyuzLGh69Kb8XVuSh4CsCbsKBXcLRoFLmJ?cluster=devnet) — `confirmed`
+- [Full refund](https://explorer.solana.com/tx/2yiuVP6nxnW4xdb3LfdhyPhEbKkazeyFaCQvuX62WTUpgjcTDzzZxN2yX7nPb9gVf2EW3vLjseUc9ADXnjy81fFM?cluster=devnet) — `confirmed`
+
+The CLI reported `paymentMode: HMAC_DEMO_BRIDGE`. This run proves the hosted pay.sh per-call sandbox and the real devnet bond transactions in one own-wallet flow; it does not prove pay.sh session-credential verification or MPP capped repeated sessions.
+
 ## Retired historical evidence (do not use in presentation)
 
 The sections below retain older run metadata for incident tracing only. They refer to the retired `Hoam…` deployment and must not be presented as current evidence. New scope-denial and TTL-settlement evidence will be recorded against `EG9…` before final submission.
