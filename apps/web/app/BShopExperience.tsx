@@ -484,7 +484,7 @@ export function BShopExperience({ initialSurface = "shop" }: { initialSurface?: 
     } catch (cause) {
       const code = cause instanceof Error ? cause.message : "PUBLIC_DEMO_FAILED";
       const messages: Record<string, string> = {
-        PUBLIC_DEMO_COOLDOWN: "This network has already used the public runner recently. Try again in 10 minutes or connect your own agent.",
+        PUBLIC_DEMO_COOLDOWN: "This network just used the sponsored runner. Try again in about one minute, or continue with your own agent.",
         PUBLIC_DEMO_BUSY: "Another public devnet transaction is confirming. Try again shortly.",
         PUBLIC_DEMO_DAILY_LIMIT: "Today’s sponsored transaction budget has been reached. The external-agent example remains available.",
       };

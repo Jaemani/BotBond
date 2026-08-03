@@ -1,6 +1,6 @@
 # Live Deployment and On-chain Evidence
 
-Last verified: 2026-08-03 21:45 KST
+Last verified: 2026-08-03 21:54 KST
 
 This page records fresh public runs against the deployed services. Private scoped tokens and wallet material are intentionally omitted.
 
@@ -16,11 +16,11 @@ This page records fresh public runs against the deployed services. Private scope
 
 Current revisions:
 
-- Gateway: `botbond-gateway-00007-tmz`
+- Gateway: `botbond-gateway-00008-gxs`
 - Intent: `botbond-intent-agent-00004-jwj`
 - pay.sh Gate: `botbond-pay-gate-00003-zsl`
 - Cloud Run Web: `botbond-web-00005-lsb`
-- Vercel: `dpl_2LuzpkhnzDFpc9Qj5ZYQ7ghuf8Eu`
+- Vercel: `dpl_FMkWkymU9cJpFgaPXbuL5a3DYdBt`
 
 ## Evidence validity after reproducible program deployment
 
@@ -74,6 +74,14 @@ Executed through the public sponsored runner on 2026-08-03 21:48 KST, after depl
 - [Bond returned](https://explorer.solana.com/tx/nF4dwH3htZfjS3nega6ZLVEaYNbsd4JambZiYKWKMsWE4Duo9rWWDcknuhfTVJanzkAYzK7bu2V3Fc63ji3Mndm?cluster=devnet) — `confirmed`
 
 Captured current state: [`10-live-scope-denied-eg9.png`](audit/final-product/10-live-scope-denied-eg9.png). This is live Solana devnet with the browser HMAC payment bridge—not proof of a pay.sh session credential.
+
+## Public-run retry policy
+
+The sponsored runner now uses a 60-second hashed-IP cooldown, a 30-run daily budget and one active execution lease. This lets a reviewer retry after a failed or completed run without opening the sponsor wallet to unbounded traffic. The change was verified by completing another fresh normal run after the previous scope-denial run:
+
+- Session: `ses_public_a9c575a9-b45b-40a2-98a4-b206306cda80`
+- [Bond open](https://explorer.solana.com/tx/2qGvwN2Z3udrRAwBKCPKEPU8iCkWo24vemtuqjrndM8oZLwQRsdip9YQbR1SauiP56JpBGoXayQb3mrxhR2JyfAt?cluster=devnet) — `confirmed`
+- [Bond returned](https://explorer.solana.com/tx/4tisLcC942W3EJHEo7FVjsfjHWdZq9wKwSy4CjJ2bDcqJvWQ56qDn1kaK4i7vbMwrBRpN1qqR62HcsVcmMHh6P8K?cluster=devnet) — `confirmed`
 
 ## Retired historical evidence (do not use in presentation)
 

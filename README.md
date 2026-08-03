@@ -40,7 +40,7 @@ The public Web app has four independent product routes:
 | [`/merchant`](https://botbond-bshop.vercel.app/merchant) | BShop operator | inventory, scoped requests and settlement evidence |
 | [`/integrate`](https://botbond-bshop.vercel.app/integrate) | agent developer | live connection check: discovery `200`, direct `403`, pay.sh gate `402`, own-wallet command |
 
-The sponsored browser runner creates fresh Solana-devnet bond-open and refund or bounded-settlement transactions. It is IP-hash cooldown, daily-budget, and single-concurrency limited. It never exposes a scoped token or signer secret.
+The sponsored browser runner creates fresh Solana-devnet bond-open and refund or bounded-settlement transactions. It has a 1-minute IP-hash cooldown, daily budget, and single-concurrency limit. It never exposes a scoped token or signer secret.
 
 ### Honest execution boundary
 

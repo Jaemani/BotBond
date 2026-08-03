@@ -290,7 +290,9 @@ export function publicDemoRunnerFromEnvironment(): PublicDemoRunner | undefined 
     new Firestore({ projectId }),
     namespace,
     Number(process.env.PUBLIC_DEMO_DAILY_LIMIT ?? 30),
-    Number(process.env.PUBLIC_DEMO_COOLDOWN_MS ?? 600_000),
+    // A public reviewer should be able to retry after a short failed run.
+    // Daily and single-run limits still protect the sponsored devnet wallet.
+    Number(process.env.PUBLIC_DEMO_COOLDOWN_MS ?? 60_000),
     Number(process.env.PUBLIC_DEMO_LEASE_MS ?? 120_000),
   );
   return new SolanaPublicDemoRunner(
