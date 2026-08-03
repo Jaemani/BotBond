@@ -1,121 +1,115 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import type { Fixture } from "@/lib/types";
-import { usePlayer } from "@/lib/usePlayer";
-import {
-  IntentPanel,
-  ManifestPanel,
-  MoneyPanel,
-  Panel,
-  Receipt,
-  TracePanel,
-} from "@/components/Panels";
+import { useState } from "react";
+import { useMultiPlayer, type ScenarioSpec } from "@/lib/useMultiPlayer";
+import { ComparisonView } from "@/components/ComparisonView";
+import { ChainRail, ReceiptStrip } from "@/components/ReceiptStrip";
 
-const SCENARIOS = [
-  { id: "01-normal-session", label: "정상 세션", en: "Clean session" },
-  { id: "02-scope-denied", label: "범위 밖 차단", en: "Blocked, not slashed" },
-  { id: "03-abandoned-reservation", label: "예약 방치", en: "Bounded settlement" },
+const SCENARIOS: (ScenarioSpec & { label: string; en: string })[] = [
+  { id: "normal", file: "01-normal-session", label: "정상 세션", en: "CLEAN" },
+  { id: "denied", file: "02-scope-denied", label: "범위 밖 차단", en: "BLOCKED, NOT SLASHED" },
+  { id: "expired", file: "03-abandoned-reservation", label: "예약 방치", en: "BOUNDED SETTLEMENT" },
 ];
 
 export default function Page() {
-  const [scenarioId, setScenarioId] = useState(SCENARIOS[0].id);
-  const [fixture, setFixture] = useState<Fixture | null>(null);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const [activeId, setActiveId] = useState(SCENARIOS[0].id);
+  const p = useMultiPlayer(SCENARIOS);
 
-  useEffect(() => {
-    let cancelled = false;
-    setLoadError(null);
-    fetch(`/fixtures/${scenarioId}.json`)
-      .then((r) => {
-        if (!r.ok) throw new Error(`Fixture ${scenarioId} returned ${r.status}`);
-        return r.json();
-      })
-      .then((data: Fixture) => {
-        if (!cancelled) setFixture(data);
-      })
-      .catch((err: Error) => {
-        if (!cancelled) {
-          setFixture(null);
-          setLoadError(err.message);
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [scenarioId]);
-
-  const p = usePlayer(fixture);
-  const v = p.view;
+  const lane = p.lanes[activeId];
+  if (!lane) return null;
+  const v = lane.view;
 
   return (
     <main className="shell">
-      <header className="topbar">
+      <header className="brandbar">
         <div>
-          <h1 className="wordmark">
-            Bot<span>Bond</span>
-          </h1>
+          <h1 className="wordmark">BOTBOND</h1>
           <p className="tagline">
             처음 보는 에이전트도 목적을 선언하고 환불 가능한 보증금을 걸면
             제한된 API 세션을 받는다.
           </p>
         </div>
-        <span className="fixture-badge">DEV FIXTURE — NOT LIVE CHAIN DATA</span>
+        <span className="fixture-badge">DEV FIXTURE · NOT LIVE CHAIN DATA</span>
       </header>
 
-      <nav className="scenarios" aria-label="Demo scenarios">
-        {SCENARIOS.map((s, i) => (
-          <button
-            key={s.id}
-            className="scenario-tab"
-            aria-pressed={scenarioId === s.id}
-            onClick={() => setScenarioId(s.id)}
-          >
-            <span className="idx">{String(i + 1).padStart(2, "0")}</span>
-            <span className="lbl">{s.label}</span>
-            <span className="idx">{s.en}</span>
-          </button>
-        ))}
-      </nav>
+      <aside className="rail rail-left">
+        <div className="rail-block">
+          <p className="rail-label">SCENARIOS</p>
+          {SCENARIOS.map((s, i) => {
+            const l = p.lanes[s.id];
+            const status = !l
+              ? ""
+              : l.playing
+                ? "running"
+                : l.finished
+                  ? "done"
+                  : l.cursor > 0
+                    ? "paused"
+                    : "idle";
+            return (
+              <button
+                key={s.id}
+                className="scenario-tab"
+                aria-pressed={activeId === s.id}
+                data-status={status}
+                onClick={() => setActiveId(s.id)}
+              >
+                <span className="idx">
+                  {String(i + 1).padStart(2, "0")}
+                  {l && l.total > 0 && (
+                    <span className="tab-progress">
+                      {l.cursor}/{l.total}
+                    </span>
+                  )}
+                </span>
+                <span className="lbl">{s.label}</span>
+                <span className="idx">{s.en}</span>
+              </button>
+            );
+          })}
+        </div>
+      </aside>
 
-      {loadError && (
-        <p className="muted-empty" style={{ color: "var(--seal)", marginBottom: 14 }}>
-          Could not load the fixture: {loadError}. Check that
-          public/fixtures/{scenarioId}.json exists.
-        </p>
-      )}
-
-      <div className="stage">
-        <Panel step="01" title="Intent">
-          <IntentPanel v={v} />
-        </Panel>
-        <Panel step="02" title="Contract">
-          <ManifestPanel v={v} />
-        </Panel>
-        <Panel step="03" title="Money">
-          <MoneyPanel v={v} />
-        </Panel>
+      <div className="strip-wrap">
+        <ReceiptStrip v={v} />
       </div>
 
-      <TracePanel v={v} />
-      <Receipt v={v} />
+      <aside className="rail rail-right">
+        <div className="rail-block">
+          <p className="rail-label">CHAIN · DEVNET</p>
+          <ChainRail v={v} />
+        </div>
+        <p className="rail-note">
+          사용료는 pay.sh가, 담보는 Solana 프로그램이 담당합니다. 화면의 서명은
+          fixture 값입니다.
+        </p>
+      </aside>
+
+      <ComparisonView />
 
       <div className="transport" role="group" aria-label="Playback controls">
-        <button className="tbtn primary" onClick={p.playing ? p.pause : p.play}>
-          {p.playing ? "Pause" : p.cursor >= p.total && p.total > 0 ? "Replay" : "Play"}
+        <button className="tbtn primary" onClick={() => p.toggle(activeId)}>
+          {lane.playing ? "정지" : lane.finished ? "다시" : "실행"}
         </button>
-        <button className="tbtn" onClick={p.step} disabled={p.cursor >= p.total}>
-          Step
+        <button className="tbtn" onClick={() => p.step(activeId)} disabled={lane.finished}>
+          한 칸
         </button>
-        <button className="tbtn" onClick={p.reset}>
-          Reset
+        <button className="tbtn" onClick={() => p.reset(activeId)}>
+          되감기
         </button>
-        <button className="tbtn" onClick={p.jumpToEnd}>
-          End
+        <button className="tbtn" onClick={() => p.jumpToEnd(activeId)}>
+          끝으로
         </button>
         <span className="progress">
-          {p.cursor} / {p.total}
+          {lane.cursor} / {lane.total}
         </span>
+        <span className="transport-sep" />
+        <button className="tbtn" onClick={p.playAll}>
+          전체 실행
+        </button>
+        <button className="tbtn" onClick={p.resetAll}>
+          전체 초기화
+        </button>
         <div className="speeds">
           {[1, 2, 4].map((sp) => (
             <button
