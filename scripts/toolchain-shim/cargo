@@ -1,0 +1,13 @@
+#!/bin/sh
+# Anchor's Solana SBF tool invokes `cargo +<toolchain>`. Homebrew cargo does
+# not handle that rustup syntax, so delegate only that form to rustup.
+case "$1" in
+  +*)
+    toolchain="${1#+}"
+    shift
+    exec rustup run "$toolchain" cargo "$@"
+    ;;
+  *)
+    exec /opt/homebrew/bin/cargo "$@"
+    ;;
+esac

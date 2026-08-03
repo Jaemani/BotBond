@@ -430,12 +430,43 @@ code { font-family: var(--mono); font-variant-ligatures: none; }
 .cloudflare-boundary strong, .cloudflare-boundary span { display: block; }
 .cloudflare-boundary code { display: block; margin: 9px 0; padding: 11px; overflow-x: auto; background: #1d2822; color: #d8eee0; font-family: var(--mono); font-size: 11px; }
 .cloudflare-boundary span { color: var(--muted); font-size: 11px; }
+.connection-checker { margin: 24px 0; padding: 26px; border: 1px solid #b9cfc6; background: #edf5f0; }
+.connection-checker-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; }
+.connection-checker h2 { margin: 8px 0 6px; font-family: var(--serif); font-size: 29px; font-weight: 400; }
+.connection-checker p { margin: 0; max-width: 680px; color: var(--ink-soft); font-size: 12px; line-height: 1.55; }
+.connection-checker .secondary-action { min-height: 46px; flex: 0 0 auto; border: 1px solid var(--forest); background: var(--surface); color: var(--forest); }
+.connection-results { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 22px; }
+.connection-empty { grid-column: 1 / -1; min-height: 100px; display: grid; place-items: center; gap: 8px; border: 1px dashed #adc3ba; color: var(--ink-soft); background: rgba(255,255,255,.48); font-size: 12px; text-align: center; }
+.connection-empty svg { width: 22px; color: var(--forest); }
+.connection-result { min-height: 142px; padding: 16px; position: relative; border: 1px solid #c9d9d2; background: var(--surface); }
+.connection-result[data-status="200"] { border-top: 3px solid var(--forest); }
+.connection-result[data-status="403"] { border-top: 3px solid var(--red); }
+.connection-result[data-status="402"] { border-top: 3px solid var(--amber); }
+.connection-result[data-status="0"] { border-top: 3px solid var(--red); }
+.connection-result strong, .connection-result code { display: block; }
+.connection-result strong { padding-right: 42px; font-size: 13px; }
+.connection-result code { margin-top: 8px; color: var(--ink-soft); font-size: 9px; overflow-wrap: anywhere; }
+.connection-result p { margin-top: 17px; padding-right: 6px; color: var(--ink); font-size: 11px; }
+.connection-result small { display: block; margin-top: 8px; color: var(--ink-soft); font-family: var(--mono); font-size: 8px; }
+.connection-status { position: absolute; top: 15px; right: 14px; padding: 4px 6px; border-radius: 3px; color: var(--forest); background: var(--forest-soft); font-family: var(--mono); font-size: 10px; }
+.connection-result[data-status="403"] .connection-status, .connection-result[data-status="0"] .connection-status { color: var(--red); background: var(--red-soft); }
+.connection-result[data-status="402"] .connection-status { color: var(--amber); background: var(--amber-soft); }
+.connection-boundary { display: flex; gap: 8px; align-items: flex-start; margin-top: 17px !important; color: #49655c !important; font-size: 11px !important; }
+.connection-boundary svg { flex: 0 0 auto; width: 18px; color: var(--forest); }
 .integration-grid { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--rule); }
 .integration-grid section { min-width: 0; padding: 26px; border-right: 1px solid var(--rule); }
 .integration-grid section:last-child { border-right: 0; }
 .integration-grid h2 { margin: 10px 0 16px; font-family: var(--serif); font-size: 27px; font-weight: 400; }
 .integration-grid pre { min-height: 116px; margin: 0 0 14px; padding: 15px; overflow: auto; background: #18241e; color: #d9eee1; font-family: var(--mono); font-size: 10px; line-height: 1.55; white-space: pre-wrap; }
 .integration-grid p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.55; }
+.own-agent-card { display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: 30px; align-items: center; margin-top: 24px; padding: 28px; border: 1px solid var(--rule); background: var(--surface); }
+.own-agent-card h2 { margin: 9px 0 8px; font-family: var(--serif); font-size: 30px; font-weight: 400; }
+.own-agent-card p { margin: 0; max-width: 710px; color: var(--ink-soft); font-size: 12px; line-height: 1.6; }
+.own-agent-card pre { margin: 18px 0 0; padding: 15px; overflow: auto; background: #18241e; color: #d9eee1; font-family: var(--mono); font-size: 10px; line-height: 1.55; white-space: pre-wrap; }
+.own-agent-actions { display: grid; gap: 10px; }
+.own-agent-actions .primary-action, .own-agent-actions .secondary-action { margin: 0; min-height: 48px; font-size: 12px; }
+.own-agent-actions .secondary-action { border: 1px solid var(--rule-dark); background: var(--surface); }
+.own-agent-actions small { color: var(--ink-soft); font-size: 10px; line-height: 1.45; }
 .step-number { color: var(--forest); font-family: var(--mono); font-size: 10px; }
 .integration-truth { margin-top: 24px; padding: 22px 24px; border: 1px solid #9cbbae; background: #edf5f0; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 16px; }
 .integration-truth > svg { width: 28px; color: var(--forest); }
@@ -510,10 +541,11 @@ code { font-family: var(--mono); font-variant-ligatures: none; }
   .commerce-header { grid-template-columns: auto 1fr; gap: 20px; padding: 14px 18px; }
   .commerce-meta { display: none; }
   .surface-nav { justify-content: flex-end; gap: 18px; }
-  .agent-run-selector, .api-entry-grid, .ops-grid, .cloudflare-boundary, .integration-grid, .integration-truth, .execution-truth, .boundary-nodes { grid-template-columns: 1fr; }
+  .agent-run-selector, .api-entry-grid, .ops-grid, .cloudflare-boundary, .integration-grid, .integration-truth, .execution-truth, .boundary-nodes, .connection-results, .own-agent-card { grid-template-columns: 1fr; }
   .execution-truth > div, .execution-truth > div:first-child { border-left: 1px solid var(--rule); border-right: 1px solid var(--rule); border-bottom: 1px solid var(--rule); }
   .boundary-node-wrap > svg { transform: rotate(90deg); }
   .cloudflare-boundary > svg { transform: rotate(90deg); }
+  .connection-checker-head { display: grid; align-items: start; }
   .integration-grid section { border-right: 0; border-bottom: 1px solid var(--rule); }
   .integration-grid section:last-child { border-bottom: 0; }
   .ops-kpis { grid-template-columns: 1fr; }

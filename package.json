@@ -20,7 +20,7 @@
     "test:firestore": "scripts/test-firestore.sh",
     "typecheck": "npm run build --workspace @botbond/contracts && npm run build --workspace @botbond/observability && npm run build --workspace @botbond/payment-client && npm run typecheck --workspaces --if-present",
     "e2e": "npm run build --workspace @botbond/contracts && npm run build --workspace @botbond/observability && npm run build --workspace @botbond/payment-client && npm run e2e --workspace @botbond/gateway",
-    "build:program": "anchor build",
+    "build:program": "PATH=\"$PWD/scripts/toolchain-shim:$PATH\" anchor build",
     "verify": "npm run typecheck && npm test && npm run test:firestore && npm run build && npm run smoke:runtime --workspace @botbond/gateway && npm run e2e",
     "verify:all": "npm run verify && npm run verify:onchain",
     "verify:onchain": "npm run test:role-c:onchain",

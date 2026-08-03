@@ -1,6 +1,6 @@
 # Live Deployment and On-chain Evidence
 
-Last verified: 2026-08-03 21:16 KST
+Last verified: 2026-08-03 21:45 KST
 
 This page records fresh public runs against the deployed services. Private scoped tokens and wallet material are intentionally omitted.
 
@@ -12,15 +12,28 @@ This page records fresh public runs against the deployed services. Private scope
 | Agent discovery | https://botbond-gateway-752329931962.us-central1.run.app/.well-known/agent-access | HTTP 200; publishes public runner, program, and pay gate |
 | Hosted pay.sh gate | https://botbond-pay-gate-752329931962.us-central1.run.app | protected endpoint returns x402 `402 Payment Required` |
 | Intent API | https://botbond-intent-agent-752329931962.us-central1.run.app | Vertex AI Gemini compiler |
-| Solana program | https://explorer.solana.com/address/HoamYxgGuZoQerLGthZK8K4vLKTvEraZ4o7N8fkjk4bc?cluster=devnet | deployed program |
+| Solana program | https://explorer.solana.com/address/EG9rKPV69v3WNX7aVchAPonMtKPp6yML7jZwDjMKaRKR?cluster=devnet | reproducibly built and deployed devnet program |
 
 Current revisions:
 
-- Gateway: `botbond-gateway-00006-z9w`
-- Intent: `botbond-intent-agent-00003-bv2`
-- pay.sh Gate: `botbond-pay-gate-00002-2pq`
-- Cloud Run Web: `botbond-web-00004-fzr`
-- Vercel: `dpl_8EQUVtawFSSsbddBYBUQZZS7VGwc`
+- Gateway: `botbond-gateway-00007-tmz`
+- Intent: `botbond-intent-agent-00004-jwj`
+- pay.sh Gate: `botbond-pay-gate-00003-zsl`
+- Cloud Run Web: `botbond-web-00005-lsb`
+- Vercel: `dpl_2LuzpkhnzDFpc9Qj5ZYQ7ghuf8Eu`
+
+## Evidence validity after reproducible program deployment
+
+The earlier `Hoam…` program and its transactions are **retired as submission evidence**. Its deployed binary did not match the repository's checked-in build artifact.
+
+The current submission program is `EG9rKPV69v3WNX7aVchAPonMtKPp6yML7jZwDjMKaRKR`:
+
+- the checked-in deploy keypair derives to `EG9…`;
+- `anchor build` now completes using the checked-in source;
+- the SHA-256 of `target/deploy/botbond.so` exactly matches the binary downloaded from devnet; and
+- the Gateway now discovers and verifies only this ID.
+
+[Program deployment transaction](https://explorer.solana.com/tx/2Cd4dyqLKnVgyR8VxoiSE3YMzYc5QAYV2Q2eykLpRqYC9txw4RcgGF8rkPmSSWQd59oP8i2PV6vDx8yMCKQF2NMh?cluster=devnet)
 
 ## Same Gateway: direct rejection versus official scoped request
 
@@ -29,16 +42,44 @@ This comparison was executed against the deployed Gateway on 2026-08-03 21:16 KS
 | Request | Result | What it proves |
 |---|---|---|
 | `GET /products` without a session | `403 UNKNOWN_AUTOMATED_CLIENT` | the unscoped route is rejected by the live Gateway and advertises `/.well-known/agent-access` |
-| `GET /v1/access/ses_public_a1d65c89-4a35-4d73-9770-85ee3a59bab8/products` with that session's scoped token | `200` with two filtered product records | the same deployed Gateway accepts the official lane only after a fresh policy and bond |
+| `GET /v1/access/ses_public_fa4f3ad8-942a-4053-86ad-d63ad3bb59b2/products` with that session's scoped token | `200` with two filtered product records | the same deployed Gateway accepts the official lane only after a fresh policy and bond |
 
-The accepted session compiled policy hash `sha256:4e695728a6ecfd4dc1ddb17d33a75cb676f6cda5ada23b3eac7f82cbed935534`, metered one allowed request, then closed with a full bond return.
+The accepted session compiled policy hash `sha256:12e56608c94e0e2076ce79241529008ba1a6df1b8286775de53ce990bc3c85d6`, metered four allowed requests, then closed with a full bond return. Its receipt hash is `sha256:b68aea8ebeab3ec3e80068e9689702c482d3ff6e170c049c30b4983e114edcc7`.
 
-- [Fresh bond open](https://explorer.solana.com/tx/Lo8XCv37BzGCm43Q7AAH3pXB6zxC3HHLVfemz5WXmAe6CPiXZQjc75F3j1qucqPQhsTHdSeTndgFQZ3gtmBQ6wZ?cluster=devnet) — `finalized`
-- [Fresh full refund](https://explorer.solana.com/tx/3P4YYxFir8iFbVBHQVNxzCA1o4JCva41NprAHs29xWVS2pHenMBojGswKyfxto7vtbW3Z2ShDHtqHZLz2SB215wm?cluster=devnet) — `confirmed`
+- [Fresh bond open](https://explorer.solana.com/tx/4kkFpZNN3DNzDEYqTuA9eXd7fsYv6kUvZRRV7posqddUUviFxWFvTJdKPRTDskdcFKNJnwFxZQBTzJR5Zoj3m961?cluster=devnet) — `confirmed`
+- [Fresh full refund](https://explorer.solana.com/tx/c57kFGFjgxpW1zkWzyPCxVWzjmJYNhAhaUEH2o6rGtTHUaHbQsRyVNen8ZgAhLPpPyAdzDUxEJexkieLcDWJ61S?cluster=devnet) — `confirmed`
 
 The receipt's usage-payment record is explicitly a `FAKE_ADAPTER_FIXTURE`; this public browser run uses the HMAC bridge. It does **not** prove MPP session payment. The separately verified hosted pay.sh sandbox evidence remains below.
 
-## Public run: normal release and full refund
+## Product connection check (current Vercel deployment)
+
+[`/integrate`](https://botbond-bshop.vercel.app/integrate) sends three real browser-originated requests through Vercel's server-side proxies:
+
+| Request | Current result | Meaning |
+|---|---:|---|
+| `GET /.well-known/agent-access` | `200` | deployed Gateway discovery publishes `EG9…` |
+| `GET /products` | `403` | direct unknown automation is rejected |
+| pay-gate `GET /v1/access/browser-check/products` | `402` | hosted pay.sh sandbox issued an x402 challenge |
+
+The check is deliberately non-paying: it makes the payment boundary visible before the user chooses the own-wallet CLI path. Captured current state: [`09-live-integration-check.png`](audit/final-product/09-live-integration-check.png).
+
+## Fresh current-program scope denial
+
+Executed through the public sponsored runner on 2026-08-03 21:48 KST, after deployment of `EG9…`:
+
+- Session: `ses_public_701d5ad7-0f38-439e-9af7-91baf53b2c41`
+- Result: private request blocked before origin; `penaltyAtomic: 0`; `bondRefundedAtomic: 1000000`
+- Receipt: `sha256:ba8b8d13bc9e7b09700e6fa7d6e9ae70597206d5966d031eb3b834fa352c4618`
+- [Bond open](https://explorer.solana.com/tx/2Sw79teX6ZfXhknPBpNHxVWo18y14jj29JFYKNeWbZx6vTZhYMrZTpATqJp3mRagRcHjkET9vzehPo1narHF1ZJA?cluster=devnet) — `confirmed`
+- [Bond returned](https://explorer.solana.com/tx/nF4dwH3htZfjS3nega6ZLVEaYNbsd4JambZiYKWKMsWE4Duo9rWWDcknuhfTVJanzkAYzK7bu2V3Fc63ji3Mndm?cluster=devnet) — `confirmed`
+
+Captured current state: [`10-live-scope-denied-eg9.png`](audit/final-product/10-live-scope-denied-eg9.png). This is live Solana devnet with the browser HMAC payment bridge—not proof of a pay.sh session credential.
+
+## Retired historical evidence (do not use in presentation)
+
+The sections below retain older run metadata for incident tracing only. They refer to the retired `Hoam…` deployment and must not be presented as current evidence. New scope-denial and TTL-settlement evidence will be recorded against `EG9…` before final submission.
+
+### Retired: normal release and full refund
 
 - Session: `ses_public_f512b482-ae32-4407-9f46-69daea4c23eb`
 - Outcome: `CLOSED`
@@ -48,7 +89,7 @@ The receipt's usage-payment record is explicitly a `FAKE_ADAPTER_FIXTURE`; this 
 - [Bond open](https://explorer.solana.com/tx/2NYQrnvjrHUNjDqRpjr6MbcXBhxC8NrSmUb8t2d1WxLFM5EhvJtQ3rmYUPtYeqTVtBPRrvTJGkt8LYgyF4gUxcxw?cluster=devnet)
 - [Full refund](https://explorer.solana.com/tx/nCj7Wb4djSoJW3Bjx6esffMeWPxCco7QJc8iix1n3ifC9CpcLDfLuHB9BGoSUmFgb4CPW8sfECocTzjUTpNnYqP?cluster=devnet)
 
-## Public run: scope denial without slashing
+### Retired: scope denial without slashing
 
 - Session: `ses_public_020afbaf-4ef8-4bfd-bf5a-e2cd935d2e66`
 - `/seller-contacts`: `403 OPERATION_NOT_ALLOWED`
@@ -60,7 +101,7 @@ The receipt's usage-payment record is explicitly a `FAKE_ADAPTER_FIXTURE`; this 
 - [Bond open](https://explorer.solana.com/tx/4bXRPeC72iayarAycEeLhSpUH5YHKZ7xJzn2HNGNoovVRxaJQs5mJkrnfXVgY52BfuKGcMWrsAnwMVLPMmvkHf2j?cluster=devnet)
 - [Full refund](https://explorer.solana.com/tx/2EQzvGKteuxwUp4ien3DAm7Gd2T8uSjpymdESVGfyzrkgKap5nAhi9CmNDEkSyzQqNNFfsPq7mqXpHU5PyhGtLx?cluster=devnet)
 
-## Public run: objective TTL expiry and bounded settlement
+### Retired: objective TTL expiry and bounded settlement
 
 - Session: `ses_public_3bdc04b5-56b6-4053-aa86-6b610496e27b`
 - Inventory: `1 → 0 → 1`
@@ -71,11 +112,11 @@ The receipt's usage-payment record is explicitly a `FAKE_ADAPTER_FIXTURE`; this 
 - [Bond open](https://explorer.solana.com/tx/3AQdU3R2KzwmkpEEA8KjvczYjaLH7ueYJYaB29wR9ekyMqRwQyFXH6Vtvrg49M36XzktBL2PQnfmpzG75is4y1aV?cluster=devnet)
 - [Bounded settlement and remainder refund](https://explorer.solana.com/tx/23KFr73XZdpmf19CgJnuxvqHeVprLJrRgENfMky3Ysq76hi3WxTcTcCzWQgcxoociLh5tLfgJEEcWeybXLvcDJy8?cluster=devnet)
 
-All six signatures were queried through Solana devnet RPC after execution and returned `confirmed` or `finalized` with no error.
+These retired signatures are kept only for incident tracing. They must not be used in a deck, README, video, or submitted evidence.
 
-## External-agent run through hosted pay.sh x402
+## Historical external-agent run through hosted pay.sh x402
 
-The repository example used its own devnet wallet and completed two hosted pay.sh x402 sandbox calls before settling its bond.
+This run records the separately verified pay.sh sandbox rail. Its Solana signatures predate the reproducible-program correction, so use it only as payment-rail history; re-run the current external-agent command before final submission to capture `EG9…` program evidence.
 
 - Session: `ses_external_b12e5f17-e352-436a-bd13-dc04d4da15a4`
 - pay.sh result: product JSON and inventory JSON returned after sandbox payment

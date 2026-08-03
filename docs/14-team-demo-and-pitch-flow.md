@@ -28,7 +28,7 @@
 | 3분 이내 데모 영상 | 실제 온체인 결제 전 과정 | bond open, bounded settlement, refund와 Explorer 확인을 한 영상에 담는다. |
 | 라이브 엔드포인트 | 심사 기간 중 접근 가능한 URL | web과 public Gateway endpoint를 배포하고 health 상태를 유지한다. |
 
-제출물은 같은 session, policy hash, receipt hash, transaction을 사용해야 한다. PDF에서 주장한 결과가 영상과 live endpoint에서 다르면 안 된다.
+각 **동일 rail 안의** 화면·Explorer·영수증은 같은 session, policy hash, receipt hash, transaction을 사용해야 한다. Browser sponsored run과 pay.sh own-wallet run은 현재 다른 rail이므로, 영상에서 두 segment를 명확히 분리하고 하나의 session처럼 편집하지 않는다.
 
 ## 1. 제품 정의
 
@@ -287,7 +287,14 @@ AI는 penalty를 판정하거나 자금을 이동할 권한이 없다.
 
 ## 9. 라이브 데모 흐름
 
-데모는 하나의 실제 session으로 제품 메커니즘과 온체인 정산을 증명한다.
+현재 구현은 두 개의 실제 증거 경로를 가진다. 이 구분은 약점이 아니라 구현 상태를 정확히 보여주는 방식이다.
+
+| Segment | 실제 동작 | 명시해야 할 경계 |
+|---|---|---|
+| Browser sponsored session | Gemini, Gateway, Firestore, Solana devnet bond open/refund/settlement | payment credential은 `HMAC_DEMO_BRIDGE`; pay.sh verifier가 아님 |
+| Own-wallet terminal session | pay.sh hosted sandbox `402 → payment → scoped 200`, local wallet Solana devnet bond | devnet test mint, not USDC |
+
+영상은 먼저 browser session으로 제품 UX와 온체인 bond를 보이고, 마지막 terminal segment로 pay.sh sandbox rail을 보인다.
 
 ### Step 1 — 차단과 discovery
 
@@ -305,10 +312,10 @@ AI는 penalty를 판정하거나 자금을 이동할 권한이 없다.
 
 **증명:** AI는 목적을 merchant별 실행 가능한 계약으로 변환한다.
 
-### Step 3 — Session과 bond 개설
+### Step 3 — Session과 bond 개설 (browser sponsored path)
 
 1. payment credential 상태를 검증한다.
-2. Solana devnet에서 1.00 USDC bond를 연다.
+2. Solana devnet에서 1.00 **devnet test token** bond를 연다.
 3. transaction confirmation 후 scoped session을 `ACTIVE`로 만든다.
 
 **증명:** unknown agent가 장기 계정 없이 제한된 접근권을 얻는다.
@@ -345,15 +352,14 @@ AI는 penalty를 판정하거나 자금을 이동할 권한이 없다.
 
 | 시간 | 보여줄 내용 | 핵심 설명 |
 |---|---|---|
-| 0:00-0:20 | 403과 official agent lane | unknown agent를 무조건 신뢰하지 않고 공식 경로로 보낸다. |
-| 0:20-0:50 | 자연어 intent와 compiled contract | Gemini가 merchant catalog 기반 최소 권한을 만든다. |
-| 0:50-1:15 | payment 상태, bond open, session ACTIVE | 계정·API key 없이 제한된 session이 열린다. |
-| 1:15-1:40 | 허용 호출과 `/seller-contacts` 차단 | forbidden request는 upstream 0, penalty 0이다. |
-| 1:40-2:10 | 마지막 재고 reservation `1 -> 0` | 희소 자원 점유 때문에 bond가 필요하다. |
-| 2:10-2:40 | TTL expiry와 inventory `0 -> 1` | 코드가 객관적 만료를 집행한다. |
-| 2:40-3:00 | settlement receipt와 Explorer | usage 0.003, settled 0.25, returned 0.75를 검증한다. |
+| 0:00-0:20 | `/agent` direct request | live `403`, official discovery link |
+| 0:20-0:40 | `/integrate` connection check | live discovery `200`, direct `403`, pay.sh gate `402` |
+| 0:40-1:20 | sponsored browser session | Gemini policy, new Solana devnet bond-open signature |
+| 1:20-1:50 | allowed and private request | scoped `200`, `/seller-contacts` `403`, origin boundary |
+| 1:50-2:20 | close or TTL expiry | new refund or bounded-settlement signature and receipt |
+| 2:20-3:00 | own-wallet terminal session | pay.sh sandbox `402 → payment → scoped 200`, Explorer links |
 
-실제 60초 TTL을 기다리는 동안에는 제품 설명과 기술 구조를 짧게 설명한다. 시간을 줄이기 위해 fixture clock을 쓰는 경우 화면 전체를 `DEMO SIMULATION`으로 표시한다.
+`402`은 payment challenge이고 browser payment가 아니다. 실제 60초 TTL을 기다리는 take는 짧은 아키텍처 설명을 덧붙인다. fixture clock을 쓰면 화면 전체를 `DEMO SIMULATION`으로 표시하고, 실제 온체인 증거로 제출하지 않는다.
 
 ## 11. 프로젝트 소개서 PDF 구성
 
@@ -536,17 +542,15 @@ npm run demo:smoke
 
 ## 13. 3분 데모 영상 구성
 
-영상은 UI 설명보다 실제 온체인 결제 전 과정의 연속성을 우선한다. 편집으로 서로 다른 session의 결과를 한 session처럼 붙이지 않는다.
+영상은 UI 설명보다 실제 온체인 흐름과 요청 결과를 우선한다. 편집으로 서로 다른 session 또는 rail의 결과를 한 session처럼 붙이지 않는다.
 
 | 시간 | 실제 동작 | 화면 증거 |
 |---|---|---|
-| 0:00-0:20 | 미등록 request와 official discovery | `403`, `/.well-known/agent-access` |
-| 0:20-0:45 | intent compile | natural-language intent, policy, hash |
-| 0:45-1:10 | payment 상태와 bond open | session ID, Solana confirmed transaction |
-| 1:10-1:35 | 허용 호출과 forbidden 호출 | allowed usage, upstream `0`, penalty `0` |
-| 1:35-2:05 | 마지막 재고 reservation | inventory `1 -> 0`, bond locked |
-| 2:05-2:35 | TTL expiry와 bounded settlement | inventory `0 -> 1`, settlement transaction |
-| 2:35-3:00 | refund와 최종 영수증 | usage `0.003`, settled `0.25`, returned `0.75`, Explorer |
+| 0:00-0:20 | 미등록 request와 official discovery | live `403`, `/.well-known/agent-access` |
+| 0:20-0:40 | live connection check | discovery `200`, direct `403`, pay.sh gate `402` |
+| 0:40-1:55 | browser sponsored run | intent/policy, bond open, allowed/forbidden calls, fresh Explorer link |
+| 1:55-2:20 | browser settlement | refund or bounded settlement, receipt and Explorer |
+| 2:20-3:00 | own-wallet terminal run | pay.sh sandbox pays `402 → 200`, own-wallet bond Explorer links |
 
 영상에 반드시 포함할 온체인 단계:
 

@@ -36,7 +36,8 @@ if command -v brew >/dev/null 2>&1; then
 fi
 
 cd "$ROOT_DIR"
+export PATH="$ROOT_DIR/scripts/toolchain-shim:$HOME/.cargo/bin:$PATH"
 npm run build --workspace @botbond/contracts
 npm run build --workspace @botbond/payment-client
-anchor build --ignore-keys
+anchor build
 anchor test --skip-build --validator legacy

@@ -153,18 +153,17 @@ Gemini는 정책을 **제안**하고, Gateway가 endpoint·field·rate·TTL을 �
 
 <span class="kicker">07 · ARCHITECTURE</span>
 
-# 네 기술이 서로 다른 책임을 가진다
+# 두 실행 경로가 하나의 Gateway에서 만난다
 
-<pre>External Agent
-  ├─ pay.sh x402 sandbox gate ── per-call usage payment
-  └─ BotBond Gateway · Cloud Run
-       ├─ Vertex AI Gemini ───── intent → merchant-specific policy
-       ├─ Firestore ──────────── session + ordered evidence
-       ├─ deterministic guard ── scope / calls / rate / TTL
-       ├─ BShop Origin API ───── price / inventory / reservation
-       └─ Solana devnet program  bond open / refund / bounded settlement</pre>
+<pre>Sponsored Browser Agent ── HMAC demo bridge ─┐
+                                               ├─ BotBond Gateway · Cloud Run
+Own-wallet Agent CLI ── pay.sh x402 sandbox ──┘    ├─ Vertex AI Gemini → policy
+                                                     ├─ Firestore → session + evidence
+                                                     ├─ deterministic guard → scope / rate / TTL
+                                                     ├─ BShop Origin API → price / inventory
+                                                     └─ Solana devnet → bond / refund / settlement</pre>
 
-브라우저는 Firestore·서명 키에 직접 접근하지 않습니다. Solana settlement는 confirmed transaction만 Explorer에 연결합니다.
+브라우저는 Firestore·서명 키에 직접 접근하지 않습니다. **pay.sh 결제는 own-wallet CLI만 수행**하며, browser는 HMAC demo bridge를 명시적으로 표시합니다. Solana settlement는 confirmed transaction만 Explorer에 연결합니다.
 
 ---
 
@@ -187,17 +186,14 @@ Gemini는 정책을 **제안**하고, Gateway가 endpoint·field·rate·TTL을 �
 
 <span class="kicker">09 · 3-MINUTE DEMO</span>
 
-# 하나의 연속 실행으로 증명한다
+# 실제 경계를 숨기지 않고 증명한다
 
-1. `/shop`에서 사람의 정상 구매 경로와 live inventory 확인
-2. `/agent`에서 unknown automation `403` 및 official discovery 확인
-3. 자연어 intent → Gemini policy → policy hash 확인
-4. 새 Solana devnet bond open signature 생성
-5. 허용 호출 `200`, private endpoint `403`, origin 도달 여부 비교
-6. 정상 해제는 전액 refund / 방치는 TTL 뒤 0.25 bounded settlement
-7. 같은 session의 receipt와 Explorer transaction 확인
+1. `/agent`에서 live Gateway의 unknown request `403`과 discovery를 확인한다.
+2. `/integrate`의 connection check에서 discovery `200`, direct `403`, pay.sh gate `402`를 확인한다.
+3. browser의 sponsored run으로 Gemini policy, 새 Solana devnet bond open, scoped `200`, private `403`, refund/settlement Explorer를 생성한다.
+4. **별도 terminal segment**에서 own-wallet agent가 pay.sh sandbox `402 → payment → scoped 200`을 수행하고 두 Explorer URL을 출력한다.
 
-영상은 고정 fixture가 아니라 녹화 중 생성된 session ID와 signature를 사용합니다.
+영상은 각 segment의 새 session ID와 signature를 사용한다. 서로 다른 rail을 하나의 session처럼 편집하지 않는다.
 
 ---
 
@@ -213,5 +209,7 @@ Gemini는 정책을 **제안**하고, Gateway가 endpoint·field·rate·TTL을 �
 </div>
 
 제출물: 발표 PDF · 재현 가능한 GitHub/README · 3분 실제 온체인 영상 · 심사 기간 접근 가능한 endpoint
+
+Program: <code>EG9r…KaRKR</code> · asset: devnet test mint, not USDC
 
 > Unknown agents do not need instant trust. They need bounded access and enforceable accountability.

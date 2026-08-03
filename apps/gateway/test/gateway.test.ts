@@ -54,7 +54,7 @@ describe("Gateway vertical slice", () => {
       in: "header",
       name: "x-botbond-session-token",
     });
-    expect(discovery.bond.programId).toBe("HoamYxgGuZoQerLGthZK8K4vLKTvEraZ4o7N8fkjk4bc");
+    expect(discovery.bond.programId).toBe("EG9rKPV69v3WNX7aVchAPonMtKPp6yML7jZwDjMKaRKR");
     await app.close();
   });
 

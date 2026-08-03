@@ -50,6 +50,14 @@ type DirectRequestEvidence = {
   traceId: string | null;
 };
 
+type ConnectionProbe = {
+  label: string;
+  request: string;
+  status: number;
+  detail: string;
+  traceId: string | null;
+};
+
 const BEHAVIOR_BY_SCENARIO: Record<string, PublicDemoBehavior> = {
   "01-normal-session": "normal",
   "02-scope-denied": "scope-denied",
@@ -329,11 +337,62 @@ function AgentRunSelector({ scenarioId, onChange, disabled, onRunLive, progress,
   </div><button className="live-run-action" onClick={onRunLive} disabled={disabled}><Circle weight="fill" /> {progress ?? "Run fresh Solana devnet session"}<ArrowRight /></button><small className="runner-boundary">Sponsored browser runner: live Solana bond · HMAC usage bridge. Use Integrate for the real pay.sh x402 sandbox call.</small>{error && <div className="public-run-error"><WarningCircle /> {error}</div>}</div></div>;
 }
 
-function DeveloperIntegration() {
+function DeveloperIntegration({ onOpenAgent }: { onOpenAgent: () => void }) {
+  const [probes, setProbes] = useState<ConnectionProbe[]>([]);
+  const [checking, setChecking] = useState(false);
+  const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">("idle");
+  const externalCommand = `npm run example:external-agent -- \\\n+  --gateway https://botbond-gateway-752329931962.us-central1.run.app \\\n+  --wallet ~/.config/solana/id.json`;
+
+  const readProbe = async (label: string, request: string, url: string): Promise<ConnectionProbe> => {
+    const response = await fetch(url, { cache: "no-store" });
+    const body = await response.json().catch(() => ({})) as Record<string, unknown>;
+    const error = body.error as { code?: string } | undefined;
+    const programId = (body.bond as { programId?: string } | undefined)?.programId;
+    const detail = programId
+      ? `Program ${programId.slice(0, 8)}… published by discovery`
+      : error?.code ?? (response.status === 402 ? "x402 payment challenge returned" : "Response received");
+    return { label, request, status: response.status, detail, traceId: response.headers.get("x-cloud-trace-context") };
+  };
+
+  const runConnectionCheck = async () => {
+    if (checking) return;
+    setChecking(true);
+    setProbes([]);
+    try {
+      const results = await Promise.all([
+        readProbe("Agent discovery", "GET /.well-known/agent-access", "/gateway/.well-known/agent-access"),
+        readProbe("Direct product request", "GET /products", "/gateway/products"),
+        readProbe("pay.sh payment gate", "GET /v1/access/browser-check/products", "/pay-gate/v1/access/browser-check/products"),
+      ]);
+      setProbes(results);
+    } catch (cause) {
+      setProbes([{ label: "Connection check", request: "browser → deployed services", status: 0, detail: cause instanceof Error ? cause.message : "Network error", traceId: null }]);
+    } finally {
+      setChecking(false);
+    }
+  };
+
+  const copyCommand = async () => {
+    try {
+      await navigator.clipboard.writeText(externalCommand);
+      setCopyState("copied");
+    } catch {
+      setCopyState("failed");
+    }
+  };
+
   return <main className="developer-surface">
-    <div className="developer-heading"><span className="eyebrow">BRING YOUR AGENT</span><h1>One published route, no API-key application.</h1><p>BShop keeps its normal WAF policy. The merchant explicitly exposes a signed agent lane, and BotBond issues only the scope compiled for that job.</p></div>
+    <div className="developer-heading"><span className="eyebrow">BRING YOUR AGENT</span><h1>Connect to a published agent lane, not an API-key queue.</h1><p>BShop keeps its normal WAF policy. The merchant explicitly exposes a signed agent lane, and BotBond issues only the scope compiled for that job.</p></div>
     <section className="cloudflare-boundary"><div><strong>Normal web traffic</strong><code>Agent → Cloudflare WAF → existing site policy</code><span>Unknown automation remains blocked.</span></div><ArrowRight /><div><strong>Merchant-approved agent lane</strong><code>Agent → WAF allowlisted path → BotBond → scoped API</code><span>No Cloudflare bypass. The site opens this route deliberately.</span></div></section>
+    <section className="connection-checker">
+      <div className="connection-checker-head"><div><span className="eyebrow">LIVE CONNECTION CHECK</span><h2>Test BShop’s public integration surface.</h2><p>These are browser requests to deployed Cloud Run services—not fixture events. The final payment is intentionally not made by this browser.</p></div><button className="secondary-action" onClick={runConnectionCheck} disabled={checking}>{checking ? <ClockCountdown /> : <ArrowRight />}{checking ? "Checking deployed services…" : "Run connection check"}</button></div>
+      <div className="connection-results" aria-live="polite">
+        {probes.length === 0 ? <div className="connection-empty"><Code /> Run the check to see discovery, direct rejection and the x402 payment challenge.</div> : probes.map((probe) => <div className="connection-result" data-status={probe.status} key={probe.label}><div><strong>{probe.label}</strong><code>{probe.request}</code></div><span className="connection-status">{probe.status || "ERR"}</span><p>{probe.detail}</p>{probe.traceId && <small>Cloud trace {probe.traceId.slice(0, 16)}…</small>}</div>)}
+      </div>
+      {probes.length > 0 && <p className="connection-boundary"><ShieldCheck weight="duotone" /> `402` proves that the hosted pay.sh sandbox gate challenged this request. Payment and a scoped `200` require the external-agent command below; this page never claims to pay on the visitor’s behalf.</p>}
+    </section>
     <div className="integration-grid"><section><span className="step-number">01</span><h2>Discover</h2><pre>{`GET /.well-known/agent-access`}</pre><p>Read the catalog, session endpoints, Solana program and devnet onboarding mode.</p></section><section><span className="step-number">02</span><h2>Declare intent</h2><pre>{`POST /v1/intents\n{\n  "task": "Compare price and stock",\n  "agentWallet": "<SOLANA_PUBLIC_KEY>",\n  "budget": { ... }\n}`}</pre><p>Gemini maps the request to BShop’s own endpoint and field catalog.</p></section><section><span className="step-number">03</span><h2>Open the bond</h2><pre>{`npm run example:external-agent -- \\\n  --gateway https://... \\\n  --wallet ~/.config/solana/id.json`}</pre><p>The example creates a devnet test mint, opens the real bond, activates a short session and prints Explorer links.</p></section></div>
+    <section className="own-agent-card"><div><span className="eyebrow">OWN-WALLET EXECUTION</span><h2>Run the paid sandbox rail and devnet bond yourself.</h2><p>Your local Solana keypair signs the bond open. The CLI then performs pay.sh sandbox `402 → payment → scoped 200` before the session closes and prints two Explorer links.</p><pre>{externalCommand}</pre></div><div className="own-agent-actions"><button className="primary-action" onClick={copyCommand}><Code />{copyState === "copied" ? "Command copied" : copyState === "failed" ? "Copy unavailable" : "Copy external-agent command"}</button><button className="secondary-action" onClick={onOpenAgent}><TerminalWindow />Try sponsored browser session</button><small>Needs Node 22+, Solana CLI and devnet SOL. Uses a devnet test mint, not USDC.</small></div></section>
     <section className="integration-truth"><ShieldCheck weight="duotone" /><div><strong>Execution boundary</strong><p>The external-agent command pays the hosted BotBond API through the actual pay.sh x402 sandbox gate, then opens and settles a real Solana devnet bond. The sponsored browser runner uses a labelled HMAC usage bridge because the browser does not own the pay.sh CLI wallet.</p></div><a href="https://github.com/Jaemani/BotBond/blob/main/docs/16-bring-your-agent.md" target="_blank" rel="noreferrer">Open setup guide <ArrowSquareOut /></a></section>
   </main>;
 }
@@ -471,7 +530,7 @@ export function BShopExperience({ initialSurface = "shop" }: { initialSurface?: 
         {stage === 4 && <ActiveSession v={v} onRun={player.play} playing={player.playing} onPause={player.pause} scenarioId={scenarioId} live={Boolean(live)} />}
         {stage === 5 && <SettlementReceipt v={v} fixtureMode={v.fixtureMode} onReset={player.reset} />}
       </div>}
-      {surface === "developer" && <DeveloperIntegration />}
+      {surface === "developer" && <DeveloperIntegration onOpenAgent={() => navigateSurface("agent")} />}
       {surface === "operations" && <MerchantOperations v={v} onOpenAgent={() => navigateSurface("agent")} />}
       <CartDrawer open={cartOpen} placed={orderPlaced} onClose={() => setCartOpen(false)} onCheckout={() => setOrderPlaced(true)} />
     </div>

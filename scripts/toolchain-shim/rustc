@@ -1,0 +1,2 @@
+#!/bin/sh
+exec rustup run 1.89.0-sbpf-solana-v1.52 rustc "$@"

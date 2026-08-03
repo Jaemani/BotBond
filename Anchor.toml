@@ -6,7 +6,7 @@ resolution = true
 skip-lint = false
 
 [programs.devnet]
-botbond = "HoamYxgGuZoQerLGthZK8K4vLKTvEraZ4o7N8fkjk4bc"
+botbond = "EG9rKPV69v3WNX7aVchAPonMtKPp6yML7jZwDjMKaRKR"
 
 [programs.localnet]
 botbond = "EG9rKPV69v3WNX7aVchAPonMtKPp6yML7jZwDjMKaRKR"

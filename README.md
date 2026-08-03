@@ -22,16 +22,38 @@ BotBond는 사이트가 처음 보는 AI 에이전트에게도 **서명된 사�
 - 온체인 평판이 Sybil 공격을 해결한다.
 - pay.sh가 보증금·슬래싱까지 기본 제공한다.
 
-## Live demo
+## Live product and evidence
 
 - BShop product demo: https://botbond-bshop.vercel.app
 - Cloud Run Web fallback: https://botbond-web-752329931962.us-central1.run.app
 - Agent discovery: https://botbond-gateway-752329931962.us-central1.run.app/.well-known/agent-access
 - Hosted pay.sh x402 sandbox gate: https://botbond-pay-gate-752329931962.us-central1.run.app
-- Solana program: https://explorer.solana.com/address/HoamYxgGuZoQerLGthZK8K4vLKTvEraZ4o7N8fkjk4bc?cluster=devnet
+- Solana program: https://explorer.solana.com/address/EG9rKPV69v3WNX7aVchAPonMtKPp6yML7jZwDjMKaRKR?cluster=devnet
 - Latest verified run: [docs/15-live-deployment-evidence.md](docs/15-live-deployment-evidence.md)
 
-The public Web app can now start a sponsored live devnet run. Each accepted run creates a fresh bond-open transaction and a fresh refund or bounded-settlement transaction. The runner is IP-hash cooldown, daily-budget, and single-concurrency limited. Recorded examples remain available only as clearly separated fallback evidence. Secrets and scoped session tokens are never committed.
+The public Web app has four independent product routes:
+
+| Route | Who uses it | What is actually testable |
+|---|---|---|
+| [`/shop`](https://botbond-bshop.vercel.app/shop) | customer | normal storefront and human checkout path |
+| [`/agent`](https://botbond-bshop.vercel.app/agent) | unknown agent | deployed direct `403`, discovery, sponsored Solana-devnet run |
+| [`/merchant`](https://botbond-bshop.vercel.app/merchant) | BShop operator | inventory, scoped requests and settlement evidence |
+| [`/integrate`](https://botbond-bshop.vercel.app/integrate) | agent developer | live connection check: discovery `200`, direct `403`, pay.sh gate `402`, own-wallet command |
+
+The sponsored browser runner creates fresh Solana-devnet bond-open and refund or bounded-settlement transactions. It is IP-hash cooldown, daily-budget, and single-concurrency limited. It never exposes a scoped token or signer secret.
+
+### Honest execution boundary
+
+| Component | Current state | What can be claimed |
+|---|---|---|
+| Vertex AI Gemini, Cloud Run, Firestore | live | intent compilation, sessions and ordered evidence |
+| BotBond Anchor program | live on Solana devnet | reproducible bond open and settlement/refund transactions |
+| BShop direct route | live Gateway policy | unscoped `GET /products → 403` and discovery link |
+| pay.sh rail | hosted sandbox | per-call `402 → sandbox payment → scoped 200` from external-agent CLI |
+| browser session credential | HMAC demo bridge | live devnet bond only; **not** pay.sh session verification |
+| Cloudflare | not integrated | BShop reproduces an equivalent direct-rejection policy; it does not bypass a Cloudflare zone |
+
+The Solana asset is a devnet test mint, **not USDC**. MPP capped repeated-call sessions are not claimed as E2E implemented.
 
 ## Reproduce locally
 
@@ -42,7 +64,7 @@ npm install
 npm run verify
 ```
 
-`npm run verify` runs TypeScript, Python, Anchor contract, Firestore emulator, production build, runtime smoke, and fake-adapter E2E checks. Real devnet execution additionally needs a funded Solana devnet wallet and the secrets described in [infra/README.md](infra/README.md).
+`npm run verify` runs type checks, unit tests, Firestore emulator checks, production build, runtime smoke, and fake-adapter E2E. It does not prove a live chain transaction; live evidence is documented separately.
 
 To run the connected live path after configuring those secrets:
 
@@ -53,7 +75,7 @@ BOTBOND_EVIDENCE_SECRET=<secret> \
 npm run demo:live
 ```
 
-The command creates a new policy with Vertex AI, opens a new Solana devnet bond, exercises allowed and denied Gateway calls, waits for the real reservation TTL, restores inventory, and performs bounded settlement. It writes the private live URL to `.secrets/live-demo-session.json`; that file is gitignored.
+The command creates a new policy with Vertex AI, opens a new Solana devnet bond, exercises allowed and denied Gateway calls, waits for the real reservation TTL, restores inventory, and performs bounded settlement. It writes the private live URL to `.secrets/live-demo-session.json`; that file is gitignored. This operator run uses the gateway's configured payment bridge; it is not pay.sh session verification.
 
 Payment claim boundary: the hosted pay.sh gate performs a real x402 sandbox `402 → payment → scoped API response` flow. The Gateway still activates the surrounding BotBond session through an HMAC adapter marked `FAKE_ADAPTER_FIXTURE`; it must not be described as live pay.sh session-credential verification or an MPP capped session.
 
@@ -71,6 +93,39 @@ The Vercel demo is organized as four product surfaces rather than a presentation
 - `Agent API`: unknown-client `403`, official discovery, bounded access, and agent behavior
 - `Merchant Ops`: shared inventory, allowed/denied requests, expiry, penalty, and refund
 - `Integrate`: discovery, public endpoints, and the external-agent command
+
+## 3-minute filming flow
+
+Do not edit different runs to look like one payment rail. The video has two explicitly labelled proof segments because the browser session and pay.sh sandbox have different real boundaries.
+
+| Time | Screen / command | Evidence to capture | What to say |
+|---:|---|---|---|
+| 0:00–0:15 | `/shop` then `/agent` | BShop is a normal customer storefront; agent path is separate | “BotBond is a merchant-installed agent lane, not a CAPTCHA bypass.” |
+| 0:15–0:35 | `/agent` → **Send** direct request | real Gateway `403 UNKNOWN_AUTOMATED_CLIENT` and discovery link | “Unknown automation stops before origin, but the merchant publishes an official route.” |
+| 0:35–0:55 | `/integrate` → **Run connection check** | discovery `200`, direct `403`, hosted pay.sh gate `402` plus trace IDs | “These are three live HTTP outcomes. `402` is a challenge, not a browser payment.” |
+| 0:55–1:35 | `/agent` → choose a behavior → **Run fresh Solana devnet session** | new policy/session, live events, a fresh Explorer bond-open link | “Gemini proposes scope; the Gateway enforces deterministic rules; this browser run has a live devnet bond.” |
+| 1:35–2:05 | same run | allowed scoped `200`; private endpoint `403`; origin boundary | “A scope denial reveals no data and has penalty zero.” |
+| 2:05–2:25 | complete or abandon selected behavior | refund or bounded settlement Explorer link and receipt | “Only objective bonded actions settle. The token is devnet test token, not USDC.” |
+| 2:25–3:00 | terminal, own wallet | `npm run example:external-agent -- ...`, showing pay.sh sandbox `402 → payment → 200` and the two Explorer links | “This separate own-wallet CLI run is the actual pay.sh sandbox payment proof. It is not presented as the browser run.” |
+
+For a bounded-settlement take, choose **Abandon last-unit hold** before the sponsored run. It intentionally waits for the configured TTL. For a shorter normal take, choose **Complete purchase**. Save the generated session ID, policy hash, receipt hash, bond-open signature and settlement/refund signature with the video; use the same identifiers in the submitted evidence.
+
+### Architecture and project-introduction PDF
+
+[`botbond-deck-v2.pdf`](botbond-deck-v2.pdf) is the project-introduction deck. It covers target users, problem, Cloudflare boundary, the four product surfaces, request outcomes, architecture, technology truth table, demo flow and reproducibility. Its editable source is [`docs/botbond-deck-v2-marp.md`](docs/botbond-deck-v2-marp.md).
+
+The architecture deliberately shows the two current execution paths:
+
+```text
+Sponsored browser agent ─ HMAC demo bridge ─┐
+                                              ├─ BotBond Gateway (Cloud Run)
+External own-wallet agent ─ pay.sh sandbox ──┘      ├─ Vertex AI Gemini
+                                                     ├─ Firestore
+                                                     ├─ BShop Origin API
+                                                     └─ Solana devnet bond program
+```
+
+Only the external own-wallet path makes the pay.sh sandbox payment. Both paths can use the real devnet bond program; neither is a Cloudflare bypass.
 
 ## 문서 읽는 순서
 
@@ -106,13 +161,10 @@ botbond/
 └── scripts/                 # demo reset, smoke test, seed
 ```
 
-## Definition of Done
+## Submission checklist
 
-라이브 데모에서 하나의 버튼 또는 명령으로 다음이 3분 내 실행돼야 한다.
-
-- Intent 컴파일
-- pay.sh x402 sandbox의 실제 유료 호출
-- Solana devnet 보증금 예치
-- 정상 세션의 사용료 정산·예약 해제·bond 반환
-- 범위 위반 호출 차단과 예약 방치 세션의 제한 정산
-- 트랜잭션 해시, 정책 해시, 호출 로그 확인
+- [x] 프로젝트 소개서 PDF: target, problem, installation scenario and architecture
+- [x] reproducible repository: source, README and own-wallet CLI guide
+- [x] live endpoints: web, discovery, Gateway and pay.sh sandbox gate
+- [x] real Solana-devnet program: reproducible binary, open and refund evidence
+- [ ] final 3-minute recording: record the two labelled proof segments above and retain the generated Explorer URLs

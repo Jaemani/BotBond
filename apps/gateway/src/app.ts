@@ -39,7 +39,7 @@ import {
 } from "./public-demo-runner.js";
 
 const DEFAULT_SETTLEMENT_LEASE_MS = 30_000;
-const DEFAULT_BOTBOND_PROGRAM_ID = "HoamYxgGuZoQerLGthZK8K4vLKTvEraZ4o7N8fkjk4bc";
+const DEFAULT_BOTBOND_PROGRAM_ID = "EG9rKPV69v3WNX7aVchAPonMtKPp6yML7jZwDjMKaRKR";
 const PAYMENT_INSTRUCTION = "pay.sh x402는 per-call 결제 rail이며, 세션 사용 상한은 BotBond Gateway가 결정적으로 집행합니다. Solana bond는 예약 같은 bonded action만 담보합니다.";
 
 interface BuildOptions {

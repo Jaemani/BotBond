@@ -2,6 +2,7 @@ use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token::{self, Mint, Token, TokenAccount, Transfer};
 
+// The checked-in deploy keypair controls this reproducible devnet program.
 declare_id!("EG9rKPV69v3WNX7aVchAPonMtKPp6yML7jZwDjMKaRKR");
 
 /// docs/03-contracts.md §5의 계약을 그대로 구현한다.
