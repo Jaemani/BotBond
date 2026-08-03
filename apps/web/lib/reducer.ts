@@ -204,7 +204,8 @@ export function applyEvent(prev: ViewState, e: BotBondEvent): ViewState {
     }
 
     case "REQUEST_DENIED": {
-      const preSession = d.phase === "PRE_SESSION";
+      const phase = str(d.phase);
+      const preSession = phase === "PRE_SESSION" || (phase === null && prev.sessionState !== "ACTIVE");
       s.deniedCount = preSession ? s.deniedCount : s.deniedCount + 1;
       s.lastBondDeltaWasZeroOnDenial = !preSession;
       s.trace = [
@@ -224,19 +225,22 @@ export function applyEvent(prev: ViewState, e: BotBondEvent): ViewState {
     }
 
     case "RESERVATION_CREATED": {
-      if (d.tick === true) {
-        s.reservation = s.reservation
-          ? { ...s.reservation, secondsRemaining: num(d.secondsRemaining) }
-          : null;
-        return s;
-      }
+      // Legacy rich fixtures may contain synthetic tick events. Ignore them: playback
+      // derives remaining TTL from event timestamps, and live mode uses wall clock.
+      if (d.tick === true) return s;
+      const expiresAt = str(d.expiresAt);
+      const eventTimeMs = new Date(e.occurredAt).getTime();
+      const expiresAtMs = expiresAt ? new Date(expiresAt).getTime() : Number.NaN;
+      const ttlSeconds = d.ttlSeconds === undefined && Number.isFinite(expiresAtMs) && Number.isFinite(eventTimeMs)
+        ? Math.max(0, Math.ceil((expiresAtMs - eventTimeMs) / 1000))
+        : num(d.ttlSeconds, 60);
       s.callCount = num(d.callIndex, s.callCount);
       s.reservation = {
         id: str(d.reservationId) ?? "rsv",
         productId: str(d.productId) ?? "",
-        ttlSeconds: num(d.ttlSeconds, 60),
-        expiresAt: str(d.expiresAt),
-        secondsRemaining: num(d.ttlSeconds, 60),
+        ttlSeconds,
+        expiresAt,
+        secondsRemaining: ttlSeconds,
         status: "HELD",
       };
       s.trace = [
@@ -247,7 +251,7 @@ export function applyEvent(prev: ViewState, e: BotBondEvent): ViewState {
           method: "POST",
           path: "/reservations",
           headline: "Held",
-          detail: `${str(d.productId) ?? ""} · ${num(d.ttlSeconds, 60)}s · bonded action`,
+          detail: `${str(d.productId) ?? ""} · ${ttlSeconds}s · bonded action`,
           bondUnchanged: true,
           at: e.occurredAt,
         },

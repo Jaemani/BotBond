@@ -11,5 +11,6 @@
     "esModuleInterop": true,
     "skipLibCheck": true
   },
+  "exclude": ["scripts/e2e-solana.ts"],
   "include": ["src/**/*.ts", "scripts/**/*.ts", "test/**/*.ts"]
 }

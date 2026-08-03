@@ -183,12 +183,13 @@ CREATED
   -> PAYMENT_READY
        ├-> ACTIVE                 # read-only policy
        └-> BONDED -> ACTIVE       # bonded action이 있는 policy
-                        ├-> CLOSED
-                        ├-> VIOLATED
-                        └-> EXPIRED
+                        └-> SETTLING
+                              ├-> CLOSED
+                              ├-> VIOLATED
+                              └-> EXPIRED
 ```
 
-허용되지 않는 역방향 전이는 거부한다. Firestore update는 expected current state를 확인하는 transaction으로 처리한다.
+`SETTLING`은 close와 reservation expiry의 상호 배제·재시작 복구를 위한 내부 상태다. retryable 실패 시에만 `ACTIVE`로 돌아간다. 그 외 허용되지 않는 역방향 전이는 거부한다. Firestore update는 expected current state를 확인하는 transaction으로 처리한다.
 
 ## 6. 보안 경계와 위협 모델
 

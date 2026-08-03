@@ -1,11 +1,11 @@
 {
   "sessionId": "ses_fixture_expired",
   "outcome": "EXPIRED",
-  "policyHash": "sha256:120cece73bb7e5229db531c96d82b9d210a419ac9a901a34ccf72b136d346feb",
+  "policyHash": "sha256:0fa81a98b90a317baf33b20bd55401cf63f27f9a1dc7e5cb439237f564605ed6",
   "calls": 2,
   "usageChargedAtomic": "2000",
-  "bondRefundedAtomic": "800000",
-  "penaltyAtomic": "200000",
+  "bondRefundedAtomic": "750000",
+  "penaltyAtomic": "250000",
   "transactions": [
     {"kind": "PAYMENT", "status": "CONFIRMED", "providerReference": "fake-usage:ses_fixture_expired", "fixtureMarker": "FAKE_ADAPTER_FIXTURE"},
     {"kind": "BOND", "status": "CONFIRMED", "providerReference": "fake-bond-expiry:ses_fixture_expired", "fixtureMarker": "FAKE_ADAPTER_FIXTURE"}

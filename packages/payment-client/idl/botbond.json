@@ -1,0 +1,1015 @@
+{
+  "address": "HoamYxgGuZoQerLGthZK8K4vLKTvEraZ4o7N8fkjk4bc",
+  "metadata": {
+    "name": "botbond",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "BotBond refundable agent bond escrow (hackathon MVP)"
+  },
+  "instructions": [
+    {
+      "name": "close_valid",
+      "docs": [
+        "정상 종료: reservation이 없거나 release/consume된 세션. penalty는 항상 0, 전액 환불."
+      ],
+      "discriminator": [
+        205,
+        167,
+        211,
+        239,
+        151,
+        6,
+        252,
+        214
+      ],
+      "accounts": [
+        {
+          "name": "settlement_authority",
+          "signer": true,
+          "relations": [
+            "bond_session"
+          ]
+        },
+        {
+          "name": "bond_session",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  111,
+                  110,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "bond_session.agent",
+                "account": "BondSession"
+              },
+              {
+                "kind": "account",
+                "path": "bond_session.policy_hash",
+                "account": "BondSession"
+              },
+              {
+                "kind": "account",
+                "path": "bond_session.session_nonce",
+                "account": "BondSession"
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint",
+          "relations": [
+            "bond_session"
+          ]
+        },
+        {
+          "name": "escrow_token",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "bond_session"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "agent_token",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "receipt_hash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "open_bond",
+      "discriminator": [
+        104,
+        15,
+        47,
+        167,
+        89,
+        122,
+        159,
+        22
+      ],
+      "accounts": [
+        {
+          "name": "agent",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "merchant"
+        },
+        {
+          "name": "settlement_authority"
+        },
+        {
+          "name": "mint"
+        },
+        {
+          "name": "bond_session",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  111,
+                  110,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "agent"
+              },
+              {
+                "kind": "arg",
+                "path": "policy_hash"
+              },
+              {
+                "kind": "arg",
+                "path": "session_nonce"
+              }
+            ]
+          }
+        },
+        {
+          "name": "agent_token",
+          "writable": true
+        },
+        {
+          "name": "escrow_token",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "bond_session"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "policy_hash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "session_nonce",
+          "type": "u64"
+        },
+        {
+          "name": "bond_amount",
+          "type": "u64"
+        },
+        {
+          "name": "max_penalty",
+          "type": "u64"
+        },
+        {
+          "name": "expires_at",
+          "type": "i64"
+        }
+      ]
+    },
+    {
+      "name": "reclaim_expired",
+      "docs": [
+        "expiry + grace period 이후 agent가 직접 회수. settlement authority가 사라져도 자금이 잠기지 않는다."
+      ],
+      "discriminator": [
+        125,
+        185,
+        48,
+        75,
+        0,
+        71,
+        93,
+        98
+      ],
+      "accounts": [
+        {
+          "name": "agent",
+          "signer": true,
+          "relations": [
+            "bond_session"
+          ]
+        },
+        {
+          "name": "bond_session",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  111,
+                  110,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "bond_session.agent",
+                "account": "BondSession"
+              },
+              {
+                "kind": "account",
+                "path": "bond_session.policy_hash",
+                "account": "BondSession"
+              },
+              {
+                "kind": "account",
+                "path": "bond_session.session_nonce",
+                "account": "BondSession"
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint",
+          "relations": [
+            "bond_session"
+          ]
+        },
+        {
+          "name": "escrow_token",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "bond_session"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "agent_token",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "settle_violation",
+      "docs": [
+        "객관적 의무 위반(만료된 reservation) 정산. penalty <= max_penalty 강제, 나머지 환불."
+      ],
+      "discriminator": [
+        232,
+        146,
+        233,
+        234,
+        221,
+        89,
+        213,
+        154
+      ],
+      "accounts": [
+        {
+          "name": "settlement_authority",
+          "signer": true,
+          "relations": [
+            "bond_session"
+          ]
+        },
+        {
+          "name": "bond_session",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  111,
+                  110,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "bond_session.agent",
+                "account": "BondSession"
+              },
+              {
+                "kind": "account",
+                "path": "bond_session.policy_hash",
+                "account": "BondSession"
+              },
+              {
+                "kind": "account",
+                "path": "bond_session.session_nonce",
+                "account": "BondSession"
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint",
+          "relations": [
+            "bond_session"
+          ]
+        },
+        {
+          "name": "escrow_token",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "bond_session"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "agent_token",
+          "writable": true
+        },
+        {
+          "name": "merchant_token",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "receipt_hash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "penalty",
+          "type": "u64"
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "BondSession",
+      "discriminator": [
+        143,
+        169,
+        21,
+        253,
+        72,
+        2,
+        39,
+        134
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "BondOpened",
+      "discriminator": [
+        144,
+        64,
+        233,
+        238,
+        81,
+        248,
+        153,
+        251
+      ]
+    },
+    {
+      "name": "BondReclaimed",
+      "discriminator": [
+        79,
+        107,
+        225,
+        231,
+        225,
+        132,
+        42,
+        179
+      ]
+    },
+    {
+      "name": "BondRefunded",
+      "discriminator": [
+        52,
+        32,
+        75,
+        36,
+        37,
+        139,
+        123,
+        17
+      ]
+    },
+    {
+      "name": "ViolationSettled",
+      "discriminator": [
+        86,
+        202,
+        115,
+        236,
+        83,
+        251,
+        187,
+        131
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "ZeroBond",
+      "msg": "bond amount must be greater than zero"
+    },
+    {
+      "code": 6001,
+      "name": "MaxPenaltyExceedsBond",
+      "msg": "max penalty cannot exceed bond amount"
+    },
+    {
+      "code": 6002,
+      "name": "ExpiryInPast",
+      "msg": "expiry must be in the future"
+    },
+    {
+      "code": 6003,
+      "name": "PenaltyExceedsMax",
+      "msg": "penalty exceeds signed max penalty"
+    },
+    {
+      "code": 6004,
+      "name": "AlreadySettled",
+      "msg": "session already settled"
+    },
+    {
+      "code": 6005,
+      "name": "UnauthorizedSettlement",
+      "msg": "only the recorded settlement authority may settle"
+    },
+    {
+      "code": 6006,
+      "name": "UnauthorizedReclaim",
+      "msg": "only the agent may reclaim"
+    },
+    {
+      "code": 6007,
+      "name": "NotYetReclaimable",
+      "msg": "grace period has not elapsed"
+    },
+    {
+      "code": 6008,
+      "name": "InvalidDestination",
+      "msg": "invalid transfer destination"
+    }
+  ],
+  "types": [
+    {
+      "name": "BondOpened",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "session",
+            "type": "pubkey"
+          },
+          {
+            "name": "agent",
+            "type": "pubkey"
+          },
+          {
+            "name": "merchant",
+            "type": "pubkey"
+          },
+          {
+            "name": "policy_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "bond_amount",
+            "type": "u64"
+          },
+          {
+            "name": "max_penalty",
+            "type": "u64"
+          },
+          {
+            "name": "expires_at",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "BondReclaimed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "session",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "BondRefunded",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "session",
+            "type": "pubkey"
+          },
+          {
+            "name": "receipt_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "refunded",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "BondSession",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "agent",
+            "type": "pubkey"
+          },
+          {
+            "name": "merchant",
+            "type": "pubkey"
+          },
+          {
+            "name": "settlement_authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "policy_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "receipt_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "bond_amount",
+            "type": "u64"
+          },
+          {
+            "name": "max_penalty",
+            "type": "u64"
+          },
+          {
+            "name": "settled_penalty",
+            "type": "u64"
+          },
+          {
+            "name": "expires_at",
+            "type": "i64"
+          },
+          {
+            "name": "session_nonce",
+            "type": "u64"
+          },
+          {
+            "name": "status",
+            "type": "u8"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ViolationSettled",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "session",
+            "type": "pubkey"
+          },
+          {
+            "name": "receipt_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "penalty",
+            "type": "u64"
+          },
+          {
+            "name": "refunded",
+            "type": "u64"
+          }
+        ]
+      }
+    }
+  ]
+}

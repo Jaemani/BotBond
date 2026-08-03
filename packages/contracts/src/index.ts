@@ -70,6 +70,7 @@ export type SessionState =
   | "PAYMENT_READY"
   | "BONDED"
   | "ACTIVE"
+  | "SETTLING"
   | "CLOSED"
   | "VIOLATED"
   | "EXPIRED";
@@ -145,6 +146,8 @@ export interface SettlementReceipt {
   receiptHash: string;
 }
 
+export const DEFAULT_UNIT_PRICE_ATOMIC = "1000";
+
 export interface PaymentAdapter {
   createChallenge(input: { sessionId: string; usageCapAtomic: string }): Promise<PaymentChallengeResult>;
   verifyCredential(input: { sessionId: string; credential: string; challenge?: string }): Promise<PaymentVerificationResult>;
@@ -169,8 +172,8 @@ export interface SettlementAuthorizationEvidence {
 
 export interface BondAdapter {
   verifyOpenBond(input: { sessionId: string; bondAccount: string; policyHash: string; amountAtomic: string; maxPenaltyAtomic: string }): Promise<BondVerificationResult>;
-  requestValidClose(input: { sessionId: string; policyHash: string; amountAtomic: string; evidence?: SettlementAuthorizationEvidence }): Promise<BondSettlementResult>;
-  requestExpiredReservationSettlement(input: { sessionId: string; policyHash: string; penaltyAtomic: string; maxPenaltyAtomic: string; bondAmountAtomic: string; reservationId: string; evidence?: SettlementAuthorizationEvidence }): Promise<BondSettlementResult>;
+  requestValidClose(input: { sessionId: string; bondAccount?: string; policyHash: string; amountAtomic: string; evidence?: SettlementAuthorizationEvidence }): Promise<BondSettlementResult>;
+  requestExpiredReservationSettlement(input: { sessionId: string; bondAccount?: string; policyHash: string; penaltyAtomic: string; maxPenaltyAtomic: string; bondAmountAtomic: string; reservationId: string; evidence?: SettlementAuthorizationEvidence }): Promise<BondSettlementResult>;
   getTransactionStatus(input: { providerReference: string }): Promise<AdapterResult>;
 }
 

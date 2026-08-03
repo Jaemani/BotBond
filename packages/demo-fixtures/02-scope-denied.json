@@ -1,16 +1,42 @@
 {
   "fixtureVersion": "botbond-fixture/v1",
   "name": "02-scope-denied",
-  "title": "범위 밖 호출 차단",
-  "summary": "허용되지 않은 경로를 두 번 시도하지만 호출 전에 차단되고, 보증금은 한 푼도 차감되지 않는다.",
+  "title": "범위는 막고, 정상 작업은 계속",
+  "summary": "판매자 연락처와 리뷰 본문을 요구하지만 protected API 전에 차단된다. 이후 허용된 재고 조회는 계속된다.",
   "expectedOutcome": {
     "outcome": "CLOSED",
-    "usageChargedAtomic": "10000",
+    "usageChargedAtomic": "3000",
     "penaltyAtomic": "0",
     "bondRefundedAtomic": "1000000"
   },
+  "story": {
+    "question": "에이전트가 목적 밖 데이터를 요구하면, 유효한 구매 작업까지 중단해야 하는가?",
+    "merchantOutcome": "민감한 seller contact는 0건 노출되고, 허용된 재고 조회는 계속되며 bond는 움직이지 않는다.",
+    "beats": [
+      {
+        "eventType": "SESSION_ACTIVATED",
+        "title": "유효한 범위부터 허용",
+        "detail": "가격과 재고만 계약에 들어 있다."
+      },
+      {
+        "eventType": "REQUEST_DENIED",
+        "title": "보호 API 앞에서 차단",
+        "detail": "seller contact와 review body는 upstream에 도달하지 않는다."
+      },
+      {
+        "eventType": "USAGE_SETTLED",
+        "title": "차단 요청은 청구하지 않음",
+        "detail": "3건의 허용 호출만 사용료가 된다."
+      },
+      {
+        "eventType": "BOND_REFUNDED",
+        "title": "차단은 처벌이 아님",
+        "detail": "penalty 0, bond 1.00 USDC 전액 반환."
+      }
+    ]
+  },
   "sessionId": "ses_denied_02",
-  "policyHash": "sha256:9f2c41ab7d3e58c0b16a4f9d2e7c8a35b0d94e1f6a2c7b83d5e0f1a4c9b6d8e27",
+  "policyHash": "sha256:af65c793cc6b01248603b4518bbf4762316a811b59f9df95207dd10cfab336f5",
   "events": [
     {
       "eventId": "evt_denied_02_001",
@@ -37,8 +63,8 @@
       "type": "INTENT_RECEIVED",
       "data": {
         "intentId": "int_7bd21c",
-        "task": "150만 원 이하 노트북 20개의 가격과 재고를 비교하고, 가장 좋은 상품 하나를 60초만 예약해줘. 판매자 연락처는 필요 없어.",
-        "taskEn": "Compare price and stock for 20 laptops under 1.5M KRW, then hold the best one for 60 seconds. Seller contacts are not needed.",
+        "task": "등록된 노트북의 가격과 재고를 비교하고, 가장 좋은 상품 하나를 60초만 예약해줘. 판매자 연락처는 필요 없어.",
+        "taskEn": "Compare the catalog laptops' price and stock, then hold the best one for 60 seconds. Seller contacts are not needed.",
         "budget": {
           "usageCapAtomic": "200000",
           "bondCapAtomic": "1000000"
@@ -55,10 +81,10 @@
       "data": {
         "policy": {
           "version": "botbond-policy/v1",
-          "policyId": "pol_lt20_price_stock",
+          "policyId": "pol_demo_laptop_comparison",
           "merchantId": "demo-commerce",
           "agentWallet": "AgntWa11etDemo11111111111111111111111111111",
-          "purpose": "Compare price and stock for laptops under 1.5M KRW; hold one unit for 60s.",
+          "purpose": "Compare the demo catalog's laptop price and stock; hold one unit for 60s.",
           "allowedOperations": [
             {
               "method": "GET",
@@ -70,7 +96,7 @@
                 "stock",
                 "shipping"
               ],
-              "maxCalls": 10
+              "maxCalls": 1
             },
             {
               "method": "GET",
@@ -79,7 +105,7 @@
                 "stock",
                 "updatedAt"
               ],
-              "maxCalls": 25
+              "maxCalls": 2
             },
             {
               "method": "POST",
@@ -93,7 +119,7 @@
             }
           ],
           "constraints": {
-            "maxTotalCalls": 25,
+            "maxTotalCalls": 5,
             "maxRequestsPerMinute": 30,
             "expiresAt": "2026-08-21T10:05:00Z",
             "usageCapAtomic": "200000",
@@ -115,7 +141,7 @@
           },
           "catalogVersion": "merchant-catalog/v1"
         },
-        "policyHash": "sha256:9f2c41ab7d3e58c0b16a4f9d2e7c8a35b0d94e1f6a2c7b83d5e0f1a4c9b6d8e27",
+        "policyHash": "sha256:af65c793cc6b01248603b4518bbf4762316a811b59f9df95207dd10cfab336f5",
         "excludedOperations": [
           {
             "path": "/seller-contacts",
@@ -132,7 +158,7 @@
         ],
         "fixtureMarker": "FAKE_COMPILER_FIXTURE",
         "explanation": [
-          "Price and stock fields are required to rank the candidates.",
+          "Price and stock fields are required to compare the catalog items.",
           "Seller contacts are excluded — the stated purpose does not need them.",
           "One reservation, 60 seconds, because the agent asked to hold a single unit."
         ],
@@ -169,7 +195,7 @@
         "bondAmountAtomic": "1000000",
         "maxPenaltyAtomic": "300000",
         "fixtureMarker": "FAKE_ADAPTER_FIXTURE",
-        "policyHash": "sha256:9f2c41ab7d3e58c0b16a4f9d2e7c8a35b0d94e1f6a2c7b83d5e0f1a4c9b6d8e27",
+        "policyHash": "sha256:af65c793cc6b01248603b4518bbf4762316a811b59f9df95207dd10cfab336f5",
         "bondAccount": "BondPDA9xQm4vK2rT7hN3wL8sC1yF6dE5aZ0bJ4uH",
         "transaction": {
           "signature": "5KpXn2Qw8RtY3vB6mA9cD4fG7hJ1kL0sN5pT8xZ2eW4rU7iO3yV6bM1nQ9aS2dF5gH",
@@ -187,7 +213,7 @@
       "type": "SESSION_ACTIVATED",
       "data": {
         "expiresAt": "2026-08-21T10:05:00Z",
-        "maxTotalCalls": 25,
+        "maxTotalCalls": 5,
         "tokenRef": "ses_token_...redacted"
       },
       "traceId": "trace_d4e5f6"
@@ -224,7 +250,7 @@
       "type": "REQUEST_ALLOWED",
       "data": {
         "method": "GET",
-        "path": "/products/lt-002/inventory",
+        "path": "/products/lap-1/inventory",
         "operationId": "get-inventory",
         "returnedFields": [
           "stock",
@@ -242,11 +268,55 @@
     {
       "eventId": "evt_denied_02_009",
       "sessionId": "ses_denied_02",
-      "occurredAt": "2026-08-21T10:00:05.140000Z",
+      "occurredAt": "2026-08-21T10:00:05.860000Z",
+      "type": "REQUEST_DENIED",
+      "data": {
+        "phase": "IN_SESSION",
+        "method": "GET",
+        "path": "/seller-contacts",
+        "httpStatus": 403,
+        "reason": "PATH_OUTSIDE_SIGNED_POLICY",
+        "reasonText": "Path is outside the signed policy. The request never reached the protected API.",
+        "policyHash": "sha256:af65c793cc6b01248603b4518bbf4762316a811b59f9df95207dd10cfab336f5",
+        "reachedUpstream": false,
+        "protectedDataExposed": false,
+        "chargedAtomic": "0",
+        "bondDeltaAtomic": "0",
+        "penaltyAtomic": "0",
+        "highlight": "BLOCKED_IS_NOT_SLASHABLE"
+      },
+      "traceId": "trace_d4e5f6"
+    },
+    {
+      "eventId": "evt_denied_02_010",
+      "sessionId": "ses_denied_02",
+      "occurredAt": "2026-08-21T10:00:06.560000Z",
+      "type": "REQUEST_DENIED",
+      "data": {
+        "phase": "IN_SESSION",
+        "method": "GET",
+        "path": "/products/lap-2/reviews",
+        "httpStatus": 403,
+        "reason": "FIELD_OUTSIDE_SIGNED_POLICY",
+        "reasonText": "Review bodies are not in the agreed field set.",
+        "policyHash": "sha256:af65c793cc6b01248603b4518bbf4762316a811b59f9df95207dd10cfab336f5",
+        "reachedUpstream": false,
+        "protectedDataExposed": false,
+        "chargedAtomic": "0",
+        "bondDeltaAtomic": "0",
+        "penaltyAtomic": "0",
+        "highlight": "BLOCKED_IS_NOT_SLASHABLE"
+      },
+      "traceId": "trace_d4e5f6"
+    },
+    {
+      "eventId": "evt_denied_02_011",
+      "sessionId": "ses_denied_02",
+      "occurredAt": "2026-08-21T10:00:06.740000Z",
       "type": "REQUEST_ALLOWED",
       "data": {
         "method": "GET",
-        "path": "/products/lt-003/inventory",
+        "path": "/products/lap-2/inventory",
         "operationId": "get-inventory",
         "returnedFields": [
           "stock",
@@ -262,213 +332,15 @@
       "traceId": "trace_d4e5f6"
     },
     {
-      "eventId": "evt_denied_02_010",
-      "sessionId": "ses_denied_02",
-      "occurredAt": "2026-08-21T10:00:05.320000Z",
-      "type": "REQUEST_ALLOWED",
-      "data": {
-        "method": "GET",
-        "path": "/products/lt-004/inventory",
-        "operationId": "get-inventory",
-        "returnedFields": [
-          "stock",
-          "updatedAt"
-        ],
-        "callIndex": 4,
-        "maxTotalCalls": 25,
-        "chargedAtomic": "1000",
-        "usageSpentAtomic": "4000",
-        "usageCapAtomic": "200000",
-        "bondDeltaAtomic": "0"
-      },
-      "traceId": "trace_d4e5f6"
-    },
-    {
-      "eventId": "evt_denied_02_011",
-      "sessionId": "ses_denied_02",
-      "occurredAt": "2026-08-21T10:00:05.500000Z",
-      "type": "REQUEST_ALLOWED",
-      "data": {
-        "method": "GET",
-        "path": "/products/lt-005/inventory",
-        "operationId": "get-inventory",
-        "returnedFields": [
-          "stock",
-          "updatedAt"
-        ],
-        "callIndex": 5,
-        "maxTotalCalls": 25,
-        "chargedAtomic": "1000",
-        "usageSpentAtomic": "5000",
-        "usageCapAtomic": "200000",
-        "bondDeltaAtomic": "0"
-      },
-      "traceId": "trace_d4e5f6"
-    },
-    {
       "eventId": "evt_denied_02_012",
       "sessionId": "ses_denied_02",
-      "occurredAt": "2026-08-21T10:00:05.680000Z",
-      "type": "REQUEST_ALLOWED",
-      "data": {
-        "method": "GET",
-        "path": "/products/lt-006/inventory",
-        "operationId": "get-inventory",
-        "returnedFields": [
-          "stock",
-          "updatedAt"
-        ],
-        "callIndex": 6,
-        "maxTotalCalls": 25,
-        "chargedAtomic": "1000",
-        "usageSpentAtomic": "6000",
-        "usageCapAtomic": "200000",
-        "bondDeltaAtomic": "0"
-      },
-      "traceId": "trace_d4e5f6"
-    },
-    {
-      "eventId": "evt_denied_02_013",
-      "sessionId": "ses_denied_02",
-      "occurredAt": "2026-08-21T10:00:06.580000Z",
-      "type": "REQUEST_DENIED",
-      "data": {
-        "phase": "IN_SESSION",
-        "method": "GET",
-        "path": "/seller-contacts",
-        "httpStatus": 403,
-        "reason": "PATH_OUTSIDE_SIGNED_POLICY",
-        "reasonText": "Path is outside the signed policy. The request never reached the protected API.",
-        "policyHash": "sha256:9f2c41ab7d3e58c0b16a4f9d2e7c8a35b0d94e1f6a2c7b83d5e0f1a4c9b6d8e27",
-        "reachedUpstream": false,
-        "protectedDataExposed": false,
-        "chargedAtomic": "0",
-        "bondDeltaAtomic": "0",
-        "penaltyAtomic": "0",
-        "highlight": "BLOCKED_IS_NOT_SLASHABLE"
-      },
-      "traceId": "trace_d4e5f6"
-    },
-    {
-      "eventId": "evt_denied_02_014",
-      "sessionId": "ses_denied_02",
-      "occurredAt": "2026-08-21T10:00:07.280000Z",
-      "type": "REQUEST_DENIED",
-      "data": {
-        "phase": "IN_SESSION",
-        "method": "GET",
-        "path": "/products/lt-007/reviews",
-        "httpStatus": 403,
-        "reason": "FIELD_OUTSIDE_SIGNED_POLICY",
-        "reasonText": "Review bodies are not in the agreed field set.",
-        "policyHash": "sha256:9f2c41ab7d3e58c0b16a4f9d2e7c8a35b0d94e1f6a2c7b83d5e0f1a4c9b6d8e27",
-        "reachedUpstream": false,
-        "protectedDataExposed": false,
-        "chargedAtomic": "0",
-        "bondDeltaAtomic": "0",
-        "penaltyAtomic": "0",
-        "highlight": "BLOCKED_IS_NOT_SLASHABLE"
-      },
-      "traceId": "trace_d4e5f6"
-    },
-    {
-      "eventId": "evt_denied_02_015",
-      "sessionId": "ses_denied_02",
-      "occurredAt": "2026-08-21T10:00:07.460000Z",
-      "type": "REQUEST_ALLOWED",
-      "data": {
-        "method": "GET",
-        "path": "/products/lt-007/inventory",
-        "operationId": "get-inventory",
-        "returnedFields": [
-          "stock",
-          "updatedAt"
-        ],
-        "callIndex": 7,
-        "maxTotalCalls": 25,
-        "chargedAtomic": "1000",
-        "usageSpentAtomic": "7000",
-        "usageCapAtomic": "200000",
-        "bondDeltaAtomic": "0"
-      },
-      "traceId": "trace_d4e5f6"
-    },
-    {
-      "eventId": "evt_denied_02_016",
-      "sessionId": "ses_denied_02",
-      "occurredAt": "2026-08-21T10:00:07.640000Z",
-      "type": "REQUEST_ALLOWED",
-      "data": {
-        "method": "GET",
-        "path": "/products/lt-008/inventory",
-        "operationId": "get-inventory",
-        "returnedFields": [
-          "stock",
-          "updatedAt"
-        ],
-        "callIndex": 8,
-        "maxTotalCalls": 25,
-        "chargedAtomic": "1000",
-        "usageSpentAtomic": "8000",
-        "usageCapAtomic": "200000",
-        "bondDeltaAtomic": "0"
-      },
-      "traceId": "trace_d4e5f6"
-    },
-    {
-      "eventId": "evt_denied_02_017",
-      "sessionId": "ses_denied_02",
-      "occurredAt": "2026-08-21T10:00:07.820000Z",
-      "type": "REQUEST_ALLOWED",
-      "data": {
-        "method": "GET",
-        "path": "/products/lt-009/inventory",
-        "operationId": "get-inventory",
-        "returnedFields": [
-          "stock",
-          "updatedAt"
-        ],
-        "callIndex": 9,
-        "maxTotalCalls": 25,
-        "chargedAtomic": "1000",
-        "usageSpentAtomic": "9000",
-        "usageCapAtomic": "200000",
-        "bondDeltaAtomic": "0"
-      },
-      "traceId": "trace_d4e5f6"
-    },
-    {
-      "eventId": "evt_denied_02_018",
-      "sessionId": "ses_denied_02",
-      "occurredAt": "2026-08-21T10:00:08Z",
-      "type": "REQUEST_ALLOWED",
-      "data": {
-        "method": "GET",
-        "path": "/products/lt-010/inventory",
-        "operationId": "get-inventory",
-        "returnedFields": [
-          "stock",
-          "updatedAt"
-        ],
-        "callIndex": 10,
-        "maxTotalCalls": 25,
-        "chargedAtomic": "1000",
-        "usageSpentAtomic": "10000",
-        "usageCapAtomic": "200000",
-        "bondDeltaAtomic": "0"
-      },
-      "traceId": "trace_d4e5f6"
-    },
-    {
-      "eventId": "evt_denied_02_019",
-      "sessionId": "ses_denied_02",
-      "occurredAt": "2026-08-21T10:00:08.800000Z",
+      "occurredAt": "2026-08-21T10:00:07.540000Z",
       "type": "USAGE_SETTLED",
       "data": {
         "provider": "pay.sh",
         "fixtureMarker": "FAKE_ADAPTER_FIXTURE",
-        "calls": 10,
-        "usageChargedAtomic": "10000",
+        "calls": 3,
+        "usageChargedAtomic": "3000",
         "usageCapAtomic": "200000",
         "settlementRef": "psh_settle_9a02ef",
         "note": "Denied requests were never charged."
@@ -476,9 +348,9 @@
       "traceId": "trace_d4e5f6"
     },
     {
-      "eventId": "evt_denied_02_020",
+      "eventId": "evt_denied_02_013",
       "sessionId": "ses_denied_02",
-      "occurredAt": "2026-08-21T10:00:10Z",
+      "occurredAt": "2026-08-21T10:00:08.740000Z",
       "type": "BOND_REFUNDED",
       "data": {
         "refundedAtomic": "1000000",
@@ -495,15 +367,15 @@
       "traceId": "trace_d4e5f6"
     },
     {
-      "eventId": "evt_denied_02_021",
+      "eventId": "evt_denied_02_014",
       "sessionId": "ses_denied_02",
-      "occurredAt": "2026-08-21T10:00:10.400000Z",
+      "occurredAt": "2026-08-21T10:00:09.140000Z",
       "type": "SESSION_CLOSED",
       "data": {
         "outcome": "CLOSED",
-        "calls": 10,
+        "calls": 3,
         "deniedAttempts": 2,
-        "usageChargedAtomic": "10000",
+        "usageChargedAtomic": "3000",
         "bondRefundedAtomic": "1000000",
         "penaltyAtomic": "0",
         "receiptHash": "sha256:6b2f9d0a4c71e38b5f0d2a7c9e14b6d83a5c0f2e7b9d4a1c6e8f0b3d5a7c9e12"

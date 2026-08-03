@@ -31,6 +31,77 @@ async function createSession(app: Awaited<ReturnType<typeof buildApp>>, intent: 
 }
 
 describe("Gateway vertical slice", () => {
+  it("publishes executable request schemas and current discovery evidence", async () => {
+    const { app } = await setup();
+    const openapi = (await app.inject({ method: "GET", url: "/openapi.json" })).json();
+    const schemaTitles = Object.values(openapi.components.schemas as Record<string, { title?: string }>)
+      .map((schema) => schema.title);
+    expect(schemaTitles).toEqual(expect.arrayContaining([
+      "IntentRequest",
+      "PaymentChallengeRequest",
+      "SessionRequest",
+    ]));
+    expect(openapi.paths["/v1/payment-challenges"].post.requestBody).toBeDefined();
+
+    const discovery = (await app.inject({ method: "GET", url: "/.well-known/agent-access" })).json();
+    expect(discovery.payment).toMatchObject({
+      mode: "LOCAL_HMAC_CREDENTIAL_BRIDGE",
+      integration: "FAKE_ADAPTER_FIXTURE",
+    });
+    expect(discovery.authentication.paymentMiddlewareCompatible).toBe("x-botbond-session-token: <session-token>");
+    expect(openapi.components.securitySchemes.botbondSessionToken).toEqual({
+      type: "apiKey",
+      in: "header",
+      name: "x-botbond-session-token",
+    });
+    expect(discovery.bond.programId).toBe("HoamYxgGuZoQerLGthZK8K4vLKTvEraZ4o7N8fkjk4bc");
+    await app.close();
+  });
+
+  it("blocks the unscoped commerce route and advertises the official agent lane", async () => {
+    const { app } = await setup();
+    const health = await app.inject({ method: "GET", url: "/healthz" });
+    expect(health.statusCode).toBe(200);
+    expect(health.json()).toMatchObject({ status: "ok" });
+
+    const response = await app.inject({ method: "GET", url: "/products" });
+    expect(response.statusCode).toBe(403);
+    expect(response.headers.link).toBe('</.well-known/agent-access>; rel="agent-access"');
+    expect(response.json()).toEqual({
+      error: {
+        code: "UNKNOWN_AUTOMATED_CLIENT",
+        retryable: false,
+        message: "Automated clients require a scoped BotBond session.",
+      },
+      agentAccess: {
+        protocol: "botbond/v1",
+        discovery: "/.well-known/agent-access",
+      },
+    });
+    await app.close();
+  });
+
+  it("rejects malformed negotiation requests before domain execution", async () => {
+    const { app, repository } = await setup();
+    const session = await app.inject({
+      method: "POST",
+      url: "/v1/sessions",
+      headers: { "idempotency-key": "invalid-session" },
+    });
+    expect(session.statusCode).toBe(400);
+    expect(session.json().error.code).toBe("INVALID_REQUEST");
+    expect(await repository.listSessions()).toEqual([]);
+
+    const intent = await app.inject({
+      method: "POST",
+      url: "/v1/intents",
+      payload: { agentWallet: "wallet", task: "compare", budget: { usageCapAtomic: "1.5", bondCapAtomic: "0" } },
+    });
+    expect(intent.statusCode).toBe(400);
+    expect(intent.json().error.code).toBe("INVALID_REQUEST");
+    await app.close();
+  });
+
   it("clamps merchant maxima and excludes seller contacts", async () => {
     const { app } = await setup();
     const response = await app.inject({ method: "POST", url: "/v1/intents", payload: intentBody("Compare 999 laptops and collect seller contact information") });
@@ -41,6 +112,25 @@ describe("Gateway vertical slice", () => {
     expect(body.policy.constraints.usageCapAtomic).toBe("200000");
     expect(body.validationMetadata.compilerMode).toBe("FAKE");
     expect(body.validationMetadata.fixtureMarker).toBe("FAKE_COMPILER_FIXTURE");
+    await app.close();
+  });
+
+  it("issues a public session-bound payment challenge", async () => {
+    const payment = new FakePaymentAdapter();
+    const { app } = await setup({ payment });
+    const intent = await createIntent(app, "Compare laptop prices and stock only");
+    const response = await app.inject({
+      method: "POST",
+      url: "/v1/payment-challenges",
+      payload: { intentId: intent.intentId, sessionId: "ses_payment_public" },
+    });
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      sessionId: "ses_payment_public",
+      usageCapAtomic: intent.policy.constraints.usageCapAtomic,
+      fixtureMarker: "FAKE_ADAPTER_FIXTURE",
+      paymentInstruction: "pay.sh x402는 per-call 결제 rail이며, 세션 사용 상한은 BotBond Gateway가 결정적으로 집행합니다. Solana bond는 예약 같은 bonded action만 담보합니다.",
+    });
     await app.close();
   });
 
@@ -62,6 +152,36 @@ describe("Gateway vertical slice", () => {
     expect(first.statusCode).toBe(402);
     expect(second.statusCode).toBe(402);
     expect(second.json().error.code).toBe("PAYMENT_CREDENTIAL_INVALID");
+    await app.close();
+  });
+
+  it("retries a client-generated session id after pre-activation payment failure", async () => {
+    let attempts = 0;
+    const payment: PaymentAdapter = {
+      createChallenge: (input) => new FakePaymentAdapter().createChallenge(input),
+      getUsageSettlement: (input) => new FakePaymentAdapter().getUsageSettlement(input),
+      async verifyCredential(input) {
+        attempts += 1;
+        if (attempts === 1) return { status: "FAILED", retryable: true, failureCode: "PAYMENT_PROVIDER_UNAVAILABLE" };
+        return new FakePaymentAdapter().verifyCredential(input);
+      },
+    };
+    const { app, repository } = await setup({ payment });
+    const intent = await createIntent(app, "Compare laptop prices and stock only");
+    const payload = {
+      intentId: intent.intentId,
+      policyHash: intent.policyHash,
+      sessionId: "ses_retry_pre_activation",
+      paymentCredential: "fake-payment-ok",
+    };
+    const first = await app.inject({ method: "POST", url: "/v1/sessions", headers: { "idempotency-key": "retry-pre-activation-1" }, payload });
+    expect(first.statusCode).toBe(503);
+    expect(await repository.getSession(payload.sessionId)).toBeUndefined();
+
+    const second = await app.inject({ method: "POST", url: "/v1/sessions", headers: { "idempotency-key": "retry-pre-activation-2" }, payload });
+    expect(second.statusCode).toBe(200);
+    expect(second.json().sessionId).toBe(payload.sessionId);
+    expect((await repository.getSession(payload.sessionId))?.state).toBe("ACTIVE");
     await app.close();
   });
 
@@ -92,7 +212,10 @@ describe("Gateway vertical slice", () => {
     const response = await app.inject({ method: "GET", url: `/v1/access/${session.sessionId}/seller-contacts`, headers: { authorization: `Bearer ${session.token}` } });
     expect(response.statusCode).toBe(403);
     const events = await repository.listEvents(session.sessionId);
-    expect(events.find((event) => event.type === "REQUEST_DENIED")?.data.penaltyAtomic).toBe("0");
+    const denied = events.find((event) => event.type === "REQUEST_DENIED");
+    expect(denied?.data.penaltyAtomic).toBe("0");
+    expect(denied?.data.reachedUpstream).toBe(false);
+    expect(denied?.data.protectedDataExposed).toBe(false);
     expect(events.some((event) => event.type === "PENALTY_SETTLED")).toBe(false);
     const decorated = app as unknown as { botbond: { commerce: { sellerContactHandlerCalls: number } } };
     expect(decorated.botbond.commerce.sellerContactHandlerCalls).toBe(0);
@@ -101,12 +224,20 @@ describe("Gateway vertical slice", () => {
 
   it("releases reservation, restores inventory, refunds bond, and closes idempotently", async () => {
     const bond = new FakeBondAdapter();
-    const { app } = await setup({ bond });
+    const { app, repository } = await setup({ bond });
     const intent = await createIntent(app, "Compare 20 laptops and reserve the best one for 60 seconds");
     const sessionResponse = await createSession(app, intent, { bondAccount: "fake-bond-ok" });
     const session = sessionResponse.json();
     const headers = { authorization: `Bearer ${session.token}` };
     const before = (await app.inject({ method: "GET", url: `/v1/access/${session.sessionId}/products/lap-1/inventory`, headers })).json().stock;
+    const malformedReservation = await app.inject({
+      method: "POST",
+      url: `/v1/access/${session.sessionId}/reservations`,
+      headers,
+      payload: { productId: "lap-1", quantity: 1, unexpected: true },
+    });
+    expect(malformedReservation.statusCode).toBe(400);
+    expect(malformedReservation.json().error.code).toBe("INVALID_RESERVATION_REQUEST");
     const reservationResponse = await app.inject({ method: "POST", url: `/v1/access/${session.sessionId}/reservations`, headers, payload: { productId: "lap-1", quantity: 1 } });
     expect(reservationResponse.statusCode).toBe(200);
     const reservation = reservationResponse.json();
@@ -123,6 +254,39 @@ describe("Gateway vertical slice", () => {
     expect(conflict.statusCode).toBe(409);
     expect(first.json().bondRefundedAtomic).toBe(intent.policy.constraints.bondAmountAtomic);
     expect(bond.validCloseRequests).toEqual([session.sessionId]);
+    const closeAttempts = await repository
+      .listSettlementAttempts(session.sessionId);
+    expect(closeAttempts).toHaveLength(1);
+    expect(closeAttempts[0]).toMatchObject({
+      attemptId: `close:${session.sessionId}`,
+      outcome: "VALID_CLOSE",
+      status: "CONFIRMED",
+      retryable: false,
+      providerReference: `fake-bond-refund:${session.sessionId}`,
+    });
+    await app.close();
+  });
+
+  it("recovers a stale settling close with the original evidence", async () => {
+    const bond = new FakeBondAdapter();
+    const { app, repository, clock } = await setup({ bond });
+    const intent = await createIntent(app, "Compare 20 laptops and reserve the best one for 60 seconds");
+    const sessionResponse = await createSession(app, intent, { bondAccount: "fake-bond-ok" });
+    const session = sessionResponse.json();
+    const headers = { authorization: `Bearer ${session.token}`, "idempotency-key": "recover-close" };
+
+    await repository.claimSettlement(session.sessionId, clock.now(), 30_000);
+    clock.advance(30_001);
+    const response = await app.inject({
+      method: "POST",
+      url: `/v1/sessions/${session.sessionId}/close`,
+      headers,
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect((await repository.getSession(session.sessionId))?.state).toBe("CLOSED");
+    expect(bond.validCloseRequests).toEqual([session.sessionId]);
+    expect(await repository.listSettlementAttempts(session.sessionId)).toHaveLength(1);
     await app.close();
   });
 
@@ -169,7 +333,11 @@ describe("Gateway vertical slice", () => {
     const receipt = (await repository.getSession(session.sessionId))?.receipt;
     expect(receipt?.usageChargedAtomic).toBe("3000");
     expect(receipt?.transactions.map((transaction) => transaction.kind)).toEqual(["PAYMENT", "BOND"]);
-    expect(bond.expirySettlementRequests).toEqual([{ sessionId: session.sessionId, penaltyAtomic: "200000" }]);
+    const terminalEvents = (await repository.listEvents(session.sessionId))
+      .map((event) => event.type)
+      .filter((type) => ["RESERVATION_EXPIRED", "PENALTY_SETTLED", "USAGE_SETTLED"].includes(type));
+    expect(terminalEvents).toEqual(["RESERVATION_EXPIRED", "PENALTY_SETTLED", "USAGE_SETTLED"]);
+    expect(bond.expirySettlementRequests).toEqual([{ sessionId: session.sessionId, penaltyAtomic: "250000" }]);
     await app.close();
   });
 
@@ -201,6 +369,22 @@ describe("Gateway vertical slice", () => {
     expect(policyEvent.data.policy).toEqual(intent.policy);
     expect(policyEvent.data.excludedPermissions).toEqual([]);
     expect(policyEvent.data.fixtureMarker).toBe("FAKE_COMPILER_FIXTURE");
+    await app.close();
+  });
+
+  it("accepts the dedicated BotBond token header when payment middleware owns Authorization", async () => {
+    const { app } = await setup();
+    const intent = await createIntent(app, "Compare laptop prices and stock only");
+    const session = (await createSession(app, intent)).json();
+    const response = await app.inject({
+      method: "GET",
+      url: `/v1/access/${session.sessionId}/products`,
+      headers: {
+        authorization: "PAYMENT-MIDDLEWARE-CREDENTIAL",
+        "x-botbond-session-token": session.token,
+      },
+    });
+    expect(response.statusCode).toBe(200);
     await app.close();
   });
 

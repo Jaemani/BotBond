@@ -7,7 +7,7 @@ import {
   getAccount,
 } from "@solana/spl-token";
 import { assert } from "chai";
-import { BotBondClient, deriveBondPda } from "../packages/payment-client/src";
+import { BotBondClient, deriveBondPda } from "@botbond/payment-client";
 
 const GRACE_PERIOD_SECONDS = 30;
 

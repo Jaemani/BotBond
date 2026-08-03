@@ -52,6 +52,8 @@ const paymentAdapter = new CappedSessionPaymentAdapter({
 });
 ```
 
+현재 Gateway 배선은 live pay.sh verifier가 없는 동안 이 payment adapter를 fixture-marker wrapper로 감싼다. Solana adapter reference만 real evidence로 취급하고 payment result는 `FAKE_ADAPTER_FIXTURE`를 유지한다.
+
 필요 env (로컬 슬라이스):
 
 | env | 용도 | 비고 |

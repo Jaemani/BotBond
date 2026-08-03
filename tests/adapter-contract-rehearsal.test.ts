@@ -8,16 +8,14 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Keypair, PublicKey } from "@solana/web3.js";
 import { createMint, getOrCreateAssociatedTokenAccount, mintTo } from "@solana/spl-token";
-import { createHmac } from "crypto";
+import { createSettlementEvidence } from "@botbond/payment-client/settlement-evidence";
 import { assert } from "chai";
 import {
-  AdapterResult,
   BotBondClient,
   CappedSessionPaymentAdapter,
   SolanaBondAdapter,
-  SettlementAuthorizationEvidence,
-  canonicalReceiptHash,
-} from "../packages/payment-client/src";
+} from "@botbond/payment-client";
+import type { AdapterResult, SettlementAuthorizationEvidence } from "@botbond/contracts";
 
 const HMAC_SECRET = "local-slice-shared-secret";
 const BOND = 1_000_000n;
@@ -32,6 +30,7 @@ function assertStableEnvelope(r: AdapterResult, label: string) {
 }
 
 function makeEvidence(args: {
+  sessionId: string;
   outcome: "VALID_CLOSE" | "EXPIRED_RESERVATION";
   policyHash: string;
   penaltyAtomic: string;
@@ -39,30 +38,18 @@ function makeEvidence(args: {
   nonce: string;
   reservationId?: string;
 }): SettlementAuthorizationEvidence {
-  const payload = {
-    outcome: args.outcome,
+  return createSettlementEvidence({
+    sessionId: args.sessionId,
     policyHash: args.policyHash,
-    penaltyAtomic: args.penaltyAtomic,
-    refundAtomic: args.refundAtomic,
-    reservationId: args.reservationId ?? null,
-    nonce: args.nonce,
-  };
-  const evidenceHash = canonicalReceiptHash(payload);
-  return {
-    version: "botbond-settlement-evidence/v1",
-    sessionId: "role-c-rehearsal-session",
-    evidenceHash,
-    authority: "gateway-local",
-    nonce: args.nonce,
-    issuedAt: new Date().toISOString(),
+    ...(args.reservationId ? { reservationId: args.reservationId } : {}),
     outcome: args.outcome,
-    policyHash: args.policyHash,
+    usageChargedAtomic: "0",
     penaltyAtomic: args.penaltyAtomic,
     bondRefundedAtomic: args.refundAtomic,
-    usageChargedAtomic: "0",
-    reservationId: args.reservationId,
-    signature: `hmac-sha256:${createHmac("sha256", HMAC_SECRET).update(evidenceHash).digest("hex")}`,
-  };
+    nonce: args.nonce,
+    issuedAt: new Date().toISOString(),
+    authority: "gateway-local",
+  }, HMAC_SECRET);
 }
 
 describe("adapter contract rehearsal (docs/09 harness checks 재현)", () => {
@@ -177,6 +164,7 @@ describe("adapter contract rehearsal (docs/09 harness checks 재현)", () => {
       policyHash: opened.policyHash,
       amountAtomic: BOND.toString(),
       evidence: makeEvidence({
+        sessionId: opened.sessionId,
         outcome: "VALID_CLOSE",
         policyHash: opened.policyHash,
         penaltyAtomic: "0",
@@ -214,6 +202,7 @@ describe("adapter contract rehearsal (docs/09 harness checks 재현)", () => {
       bondAmountAtomic: BOND.toString(),
       reservationId: "rh-resv-1",
       evidence: makeEvidence({
+        sessionId: opened.sessionId,
         outcome: "EXPIRED_RESERVATION",
         policyHash: opened.policyHash,
         penaltyAtomic: penalty.toString(),
@@ -237,6 +226,7 @@ describe("adapter contract rehearsal (docs/09 harness checks 재현)", () => {
       policyHash: opened.policyHash,
       amountAtomic: BOND.toString(),
       evidence: makeEvidence({
+        sessionId: opened.sessionId,
         outcome: "VALID_CLOSE",
         policyHash: opened.policyHash,
         penaltyAtomic: "0",

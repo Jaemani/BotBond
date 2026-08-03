@@ -91,7 +91,7 @@ describe("canonical policy hash (docs/03 Canonicalization)", () => {
   it("golden policy fixture 패리티", () => {
     assert.equal(
       canonicalPolicyHash(golden),
-      "sha256:120cece73bb7e5229db531c96d82b9d210a419ac9a901a34ccf72b136d346feb"
+      "sha256:0fa81a98b90a317baf33b20bd55401cf63f27f9a1dc7e5cb439237f564605ed6"
     );
   });
 });

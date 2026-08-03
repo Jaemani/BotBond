@@ -1,8 +1,10 @@
 import type {
   AccessPolicy,
+  AdapterStatus,
   BotBondEvent,
   ReservationState,
   SessionState,
+  SettlementAuthorizationEvidence,
   SettlementReceipt,
 } from "@botbond/contracts";
 
@@ -32,6 +34,62 @@ export interface ReservationRecord {
   settlementRequested: boolean;
 }
 
+export interface SettlementAttemptRecord {
+  attemptId: string;
+  sessionId: string;
+  outcome: "VALID_CLOSE" | "EXPIRED_RESERVATION";
+  reservationId?: string;
+  evidence: SettlementAuthorizationEvidence;
+  status: AdapterStatus;
+  retryable: boolean;
+  providerReference?: string;
+  failureCode?: string;
+  startedAt: string;
+  updatedAt: string;
+}
+
+export function mergeSettlementAttempt(
+  current: SettlementAttemptRecord,
+  incoming: SettlementAttemptRecord,
+): SettlementAttemptRecord {
+  if (current.evidence.evidenceHash !== incoming.evidence.evidenceHash) {
+    throw new Error("SETTLEMENT_EVIDENCE_CONFLICT");
+  }
+  if (
+    current.providerReference
+    && incoming.providerReference
+    && current.providerReference !== incoming.providerReference
+  ) {
+    throw new Error("SETTLEMENT_PROVIDER_REFERENCE_CONFLICT");
+  }
+
+  if (current.status === "CONFIRMED") {
+    return structuredClone(current);
+  }
+
+  const statusRank: Record<AdapterStatus, number> = {
+    PENDING: 0,
+    FAILED: 1,
+    CONFIRMED: 2,
+  };
+  if (statusRank[incoming.status] < statusRank[current.status]) {
+    return structuredClone(current);
+  }
+
+  const providerReference = current.providerReference ?? incoming.providerReference;
+  const { failureCode: _failureCode, providerReference: _providerReference, ...identity } = current;
+  return {
+    ...identity,
+    status: incoming.status,
+    retryable: incoming.retryable,
+    ...(providerReference ? { providerReference } : {}),
+    ...(incoming.status !== "CONFIRMED" && incoming.failureCode
+      ? { failureCode: incoming.failureCode }
+      : {}),
+    updatedAt: incoming.updatedAt,
+  };
+}
+
 export interface SessionRecord {
   sessionId: string;
   intentId: string;
@@ -46,6 +104,7 @@ export interface SessionRecord {
   traceId: string;
   paymentReference?: string;
   bondReference?: string;
+  settlementLeaseExpiresAt?: string;
   receipt?: SettlementReceipt;
 }
 
@@ -59,15 +118,23 @@ export interface Repository {
   saveIntent(intent: IntentRecord): Promise<void>;
   getIntent(intentId: string): Promise<IntentRecord | undefined>;
   saveSession(session: SessionRecord): Promise<void>;
+  createSession(session: SessionRecord): Promise<boolean>;
+  deleteSessionIfState(sessionId: string, allowedStates: SessionState[]): Promise<boolean>;
   getSession(sessionId: string): Promise<SessionRecord | undefined>;
   listSessions(): Promise<SessionRecord[]>;
   transitionSession(sessionId: string, expected: SessionState, next: SessionState): Promise<SessionRecord>;
-  reserveRequest(sessionId: string, input: { operationKey: string; operationMaxCalls: number; maxTotalCalls: number; maxRequestsPerMinute: number; nowMs: number }): Promise<SessionRecord>;
+  claimSettlement(sessionId: string, now: Date, leaseMs: number): Promise<SessionRecord | undefined>;
+  reserveRequest(sessionId: string, input: { operationKey: string; operationMaxCalls: number; maxTotalCalls: number; maxRequestsPerMinute: number; nowMs: number; expectedState: "ACTIVE" | "SETTLING" }): Promise<SessionRecord>;
   appendEvent(event: BotBondEvent): Promise<void>;
   listEvents(sessionId: string): Promise<BotBondEvent[]>;
   saveReservation(reservation: ReservationRecord): Promise<void>;
   getReservation(reservationId: string): Promise<ReservationRecord | undefined>;
   listReservations(sessionId: string): Promise<ReservationRecord[]>;
+  createSettlementAttempt(attempt: SettlementAttemptRecord): Promise<SettlementAttemptRecord>;
+  claimSettlementNonce(nonce: string, evidenceHash: string): Promise<boolean>;
+  saveSettlementAttempt(attempt: SettlementAttemptRecord): Promise<SettlementAttemptRecord>;
+  getSettlementAttempt(attemptId: string): Promise<SettlementAttemptRecord | undefined>;
+  listSettlementAttempts(sessionId?: string): Promise<SettlementAttemptRecord[]>;
   getInventory(productId: string): Promise<InventoryRecord | undefined>;
   putInventoryIfAbsent(inventory: InventoryRecord): Promise<InventoryRecord>;
   createReservationWithInventory(reservation: ReservationRecord): Promise<void>;
@@ -84,6 +151,8 @@ export class InMemoryRepository implements Repository {
   private readonly sessions = new Map<string, SessionRecord>();
   private readonly events = new Map<string, BotBondEvent[]>();
   private readonly reservations = new Map<string, ReservationRecord>();
+  private readonly settlementAttempts = new Map<string, SettlementAttemptRecord>();
+  private readonly settlementNonceClaims = new Map<string, string>();
   private readonly inventory = new Map<string, InventoryRecord>();
   private readonly idempotency = new Map<string, { fingerprint: string; status: "IN_PROGRESS" | "COMPLETED"; value?: unknown }>();
 
@@ -96,6 +165,18 @@ export class InMemoryRepository implements Repository {
   }
   async saveSession(session: SessionRecord): Promise<void> {
     this.sessions.set(session.sessionId, structuredClone(session));
+  }
+  async createSession(session: SessionRecord): Promise<boolean> {
+    if (this.sessions.has(session.sessionId)) return false;
+    this.sessions.set(session.sessionId, structuredClone(session));
+    return true;
+  }
+  async deleteSessionIfState(sessionId: string, allowedStates: SessionState[]): Promise<boolean> {
+    const session = this.sessions.get(sessionId);
+    if (!session || !allowedStates.includes(session.state)) return false;
+    this.sessions.delete(sessionId);
+    this.events.delete(sessionId);
+    return true;
   }
   async getSession(sessionId: string): Promise<SessionRecord | undefined> {
     const session = this.sessions.get(sessionId);
@@ -112,7 +193,8 @@ export class InMemoryRepository implements Repository {
       POLICY_READY: ["PAYMENT_READY"],
       PAYMENT_READY: ["ACTIVE", "BONDED"],
       BONDED: ["ACTIVE"],
-      ACTIVE: ["CLOSED", "VIOLATED", "EXPIRED"],
+      ACTIVE: ["SETTLING"],
+      SETTLING: ["ACTIVE", "CLOSED", "VIOLATED", "EXPIRED"],
       CLOSED: [],
       VIOLATED: [],
       EXPIRED: [],
@@ -120,13 +202,32 @@ export class InMemoryRepository implements Repository {
     if (session.state !== expected || !(allowed[expected] ?? []).includes(next)) {
       throw new Error(`INVALID_STATE_TRANSITION:${session.state}->${next}`);
     }
-    session.state = next;
-    this.sessions.set(sessionId, structuredClone(session));
-    return structuredClone(session);
+    const { settlementLeaseExpiresAt: _settlementLeaseExpiresAt, ...current } = session;
+    const updated: SessionRecord = { ...current, state: next };
+    this.sessions.set(sessionId, structuredClone(updated));
+    return structuredClone(updated);
   }
-  async reserveRequest(sessionId: string, input: { operationKey: string; operationMaxCalls: number; maxTotalCalls: number; maxRequestsPerMinute: number; nowMs: number }): Promise<SessionRecord> {
+  async claimSettlement(sessionId: string, now: Date, leaseMs: number): Promise<SessionRecord | undefined> {
     const session = this.sessions.get(sessionId);
     if (!session) throw new Error("SESSION_NOT_FOUND");
+    const leaseExpiresAt = session.settlementLeaseExpiresAt
+      ? new Date(session.settlementLeaseExpiresAt).getTime()
+      : Number.NEGATIVE_INFINITY;
+    if (session.state !== "ACTIVE" && (session.state !== "SETTLING" || leaseExpiresAt > now.getTime())) {
+      return undefined;
+    }
+    const updated: SessionRecord = {
+      ...session,
+      state: "SETTLING",
+      settlementLeaseExpiresAt: new Date(now.getTime() + leaseMs).toISOString(),
+    };
+    this.sessions.set(sessionId, structuredClone(updated));
+    return structuredClone(updated);
+  }
+  async reserveRequest(sessionId: string, input: { operationKey: string; operationMaxCalls: number; maxTotalCalls: number; maxRequestsPerMinute: number; nowMs: number; expectedState: "ACTIVE" | "SETTLING" }): Promise<SessionRecord> {
+    const session = this.sessions.get(sessionId);
+    if (!session) throw new Error("SESSION_NOT_FOUND");
+    if (session.state !== input.expectedState) throw new Error("SESSION_NOT_ACTIVE");
     const timestamps = session.requestTimestamps.filter((timestamp) => timestamp > input.nowMs - 60_000);
     if ((session.operationCalls[input.operationKey] ?? 0) >= input.operationMaxCalls) throw new Error("OPERATION_CALL_LIMIT");
     if (session.calls >= input.maxTotalCalls) throw new Error("TOTAL_CALL_LIMIT");
@@ -154,6 +255,34 @@ export class InMemoryRepository implements Repository {
   }
   async listReservations(sessionId: string): Promise<ReservationRecord[]> {
     return [...this.reservations.values()].filter((record) => record.sessionId === sessionId).map((record) => structuredClone(record));
+  }
+  async createSettlementAttempt(attempt: SettlementAttemptRecord): Promise<SettlementAttemptRecord> {
+    const existing = this.settlementAttempts.get(attempt.attemptId);
+    if (existing) return structuredClone(existing);
+    this.settlementAttempts.set(attempt.attemptId, structuredClone(attempt));
+    return structuredClone(attempt);
+  }
+  async claimSettlementNonce(nonce: string, evidenceHash: string): Promise<boolean> {
+    const existing = this.settlementNonceClaims.get(nonce);
+    if (existing !== undefined) return existing === evidenceHash;
+    this.settlementNonceClaims.set(nonce, evidenceHash);
+    return true;
+  }
+  async saveSettlementAttempt(attempt: SettlementAttemptRecord): Promise<SettlementAttemptRecord> {
+    const current = this.settlementAttempts.get(attempt.attemptId);
+    if (!current) throw new Error("SETTLEMENT_ATTEMPT_NOT_FOUND");
+    const merged = mergeSettlementAttempt(current, attempt);
+    this.settlementAttempts.set(attempt.attemptId, structuredClone(merged));
+    return structuredClone(merged);
+  }
+  async getSettlementAttempt(attemptId: string): Promise<SettlementAttemptRecord | undefined> {
+    const attempt = this.settlementAttempts.get(attemptId);
+    return attempt ? structuredClone(attempt) : undefined;
+  }
+  async listSettlementAttempts(sessionId?: string): Promise<SettlementAttemptRecord[]> {
+    return [...this.settlementAttempts.values()]
+      .filter((attempt) => sessionId === undefined || attempt.sessionId === sessionId)
+      .map((attempt) => structuredClone(attempt));
   }
   async getInventory(productId: string): Promise<InventoryRecord | undefined> {
     const inventory = this.inventory.get(productId);

@@ -24,7 +24,7 @@ function gapFor(events: BotBondEvent[], i: number): number {
   return Math.min(Math.max(dt, 90), MAX_GAP_MS) || BASE_GAP_MS;
 }
 
-function parseSseBlock(block: string): { id?: string; data?: string } {
+export function parseSseBlock(block: string): { id?: string; data?: string } {
   let id: string | undefined;
   const data: string[] = [];
   for (const line of block.replace(/\r/g, "").split("\n")) {
@@ -34,7 +34,7 @@ function parseSseBlock(block: string): { id?: string; data?: string } {
   return { id, ...(data.length > 0 ? { data: data.join("\n") } : {}) };
 }
 
-async function consumeEventStream(
+export async function consumeEventStream(
   config: LiveEventStream,
   lastEventId: string | null,
   signal: AbortSignal,
@@ -149,18 +149,37 @@ export function usePlayer(fixture: Fixture | null, live: LiveEventStream | null 
     setPlaying(false);
     setLiveEvents([]);
 
+    const append = (event: BotBondEvent): void => {
+      lastEventId = event.eventId;
+      if (seen.has(event.eventId)) return;
+      seen.add(event.eventId);
+      reconnects = 0;
+      setLiveStatus("LIVE");
+      setLiveEvents((current) => [...current, event]);
+    };
+
+    const poll = async (): Promise<void> => {
+      try {
+        const response = await fetch(liveUrl, {
+          headers: { Accept: "application/json", Authorization: `Bearer ${liveToken}` },
+          cache: "no-store",
+          signal: controller.signal,
+        });
+        if (!response.ok) return;
+        const body = await response.json() as { events?: BotBondEvent[] };
+        for (const event of body.events ?? []) append(event);
+      } catch {
+        // SSE owns the visible connection state; polling only closes the cross-instance gap.
+      }
+    };
+    const pollInterval = setInterval(() => void poll(), 1_000);
+    void poll();
+
     const run = async (): Promise<void> => {
       while (!controller.signal.aborted) {
         setLiveStatus(reconnects === 0 ? "CONNECTING" : "RECONNECTING");
         try {
-          lastEventId = await consumeEventStream(config, lastEventId, controller.signal, (event) => {
-            lastEventId = event.eventId;
-            if (seen.has(event.eventId)) return;
-            seen.add(event.eventId);
-            reconnects = 0;
-            setLiveStatus("LIVE");
-            setLiveEvents((current) => [...current, event]);
-          });
+          lastEventId = await consumeEventStream(config, lastEventId, controller.signal, append);
         } catch (error) {
           if (controller.signal.aborted) return;
           setLiveStatus("ERROR");
@@ -172,7 +191,10 @@ export function usePlayer(fixture: Fixture | null, live: LiveEventStream | null 
       }
     };
     void run();
-    return () => controller.abort();
+    return () => {
+      clearInterval(pollInterval);
+      controller.abort();
+    };
   }, [liveUrl, liveToken]);
 
   useEffect(() => {
@@ -217,21 +239,31 @@ export function usePlayer(fixture: Fixture | null, live: LiveEventStream | null 
     setPlaying(false);
     setCursor(total);
   }, [clear, total]);
+  const seek = useCallback((nextCursor: number) => {
+    if (live) return;
+    clear();
+    setPlaying(false);
+    setCursor(Math.max(0, Math.min(nextCursor, total)));
+  }, [clear, live, total]);
 
   const safeCursor = Math.min(cursor, total);
+  const lastEvent = safeCursor > 0 ? events[safeCursor - 1] ?? null : null;
   const view = useMemo(() => {
     const next = replay(events, safeCursor);
-    if (!live || !next.reservation?.expiresAt || next.reservation.status !== "HELD") return next;
+    if (!next.reservation?.expiresAt || next.reservation.status !== "HELD") return next;
+    const referenceTimeMs = live
+      ? liveClockMs
+      : lastEvent
+        ? new Date(lastEvent.occurredAt).getTime()
+        : new Date(next.reservation.expiresAt).getTime() - next.reservation.ttlSeconds * 1_000;
     const secondsRemaining = Math.max(
       0,
-      Math.ceil((new Date(next.reservation.expiresAt).getTime() - liveClockMs) / 1000),
+      Math.ceil((new Date(next.reservation.expiresAt).getTime() - referenceTimeMs) / 1000),
     );
     return { ...next, reservation: { ...next.reservation, secondsRemaining } };
-  }, [events, safeCursor, live, liveClockMs]);
-  const lastEvent = safeCursor > 0 ? events[safeCursor - 1] ?? null : null;
-
+  }, [events, safeCursor, live, liveClockMs, lastEvent]);
   return {
     view, cursor: safeCursor, total, playing, speed, lastEvent, liveStatus,
-    play, pause, reset, step, jumpToEnd, setSpeed,
+    play, pause, reset, step, jumpToEnd, seek, setSpeed,
   };
 }

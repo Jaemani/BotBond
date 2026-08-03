@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token::{self, Mint, Token, TokenAccount, Transfer};
 
-declare_id!("HoamYxgGuZoQerLGthZK8K4vLKTvEraZ4o7N8fkjk4bc");
+declare_id!("EG9rKPV69v3WNX7aVchAPonMtKPp6yML7jZwDjMKaRKR");
 
 /// docs/03-contracts.md §5의 계약을 그대로 구현한다.
 /// 불변식: 범위 밖 호출 차단은 체인 정산 사유가 아니고, penalty <= max_penalty <= bond_amount,

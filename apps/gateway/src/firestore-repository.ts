@@ -1,13 +1,16 @@
+import { createHash } from "node:crypto";
 import type { Firestore } from "@google-cloud/firestore";
 import type { BotBondEvent, SessionState } from "@botbond/contracts";
-import type { IdempotencyClaim, IntentRecord, InventoryRecord, Repository, ReservationRecord, SessionRecord } from "./repository.js";
+import type { IdempotencyClaim, IntentRecord, InventoryRecord, Repository, ReservationRecord, SessionRecord, SettlementAttemptRecord } from "./repository.js";
+import { mergeSettlementAttempt } from "./repository.js";
 
 const allowedTransitions: Record<SessionState, SessionState[]> = {
   CREATED: ["POLICY_READY"],
   POLICY_READY: ["PAYMENT_READY"],
   PAYMENT_READY: ["ACTIVE", "BONDED"],
   BONDED: ["ACTIVE"],
-  ACTIVE: ["CLOSED", "VIOLATED", "EXPIRED"],
+  ACTIVE: ["SETTLING"],
+  SETTLING: ["ACTIVE", "CLOSED", "VIOLATED", "EXPIRED"],
   CLOSED: [],
   VIOLATED: [],
   EXPIRED: [],
@@ -33,6 +36,32 @@ export class FirestoreRepository implements Repository {
   async saveSession(session: SessionRecord): Promise<void> {
     await this.collection("sessions").doc(session.sessionId).set(session);
   }
+  async createSession(session: SessionRecord): Promise<boolean> {
+    const reference = this.collection("sessions").doc(session.sessionId);
+    return await this.firestore.runTransaction(async (transaction) => {
+      const snapshot = await transaction.get(reference);
+      if (snapshot.exists) return false;
+      transaction.create(reference, session);
+      return true;
+    });
+  }
+  async deleteSessionIfState(sessionId: string, allowedStates: SessionState[]): Promise<boolean> {
+    const reference = this.collection("sessions").doc(sessionId);
+    const events = this.collection("events")
+      .where("sessionId", "==", sessionId);
+    return await this.firestore.runTransaction(async (transaction) => {
+      const [snapshot, eventSnapshots] = await Promise.all([
+        transaction.get(reference),
+        transaction.get(events),
+      ]);
+      if (!snapshot.exists) return false;
+      const session = snapshot.data() as SessionRecord;
+      if (!allowedStates.includes(session.state)) return false;
+      transaction.delete(reference);
+      for (const event of eventSnapshots.docs) transaction.delete(event.ref);
+      return true;
+    });
+  }
   async getSession(sessionId: string): Promise<SessionRecord | undefined> {
     return requireData<SessionRecord>((await this.collection("sessions").doc(sessionId).get()).data());
   }
@@ -47,17 +76,40 @@ export class FirestoreRepository implements Repository {
       if (!snapshot.exists) throw new Error("SESSION_NOT_FOUND");
       const session = snapshot.data() as SessionRecord;
       if (session.state !== expected) throw new Error(`INVALID_STATE_TRANSITION:${session.state}->${next}`);
-      const updated = { ...session, state: next } as SessionRecord;
+      const { settlementLeaseExpiresAt: _settlementLeaseExpiresAt, ...current } = session;
+      const updated = { ...current, state: next } as SessionRecord;
       transaction.set(reference, updated);
       return updated;
     });
   }
-  async reserveRequest(sessionId: string, input: { operationKey: string; operationMaxCalls: number; maxTotalCalls: number; maxRequestsPerMinute: number; nowMs: number }): Promise<SessionRecord> {
+  async claimSettlement(sessionId: string, now: Date, leaseMs: number): Promise<SessionRecord | undefined> {
     const reference = this.collection("sessions").doc(sessionId);
     return await this.firestore.runTransaction(async (transaction) => {
       const snapshot = await transaction.get(reference);
       if (!snapshot.exists) throw new Error("SESSION_NOT_FOUND");
       const session = snapshot.data() as SessionRecord;
+      const leaseExpiresAt = session.settlementLeaseExpiresAt
+        ? new Date(session.settlementLeaseExpiresAt).getTime()
+        : Number.NEGATIVE_INFINITY;
+      if (session.state !== "ACTIVE" && (session.state !== "SETTLING" || leaseExpiresAt > now.getTime())) {
+        return undefined;
+      }
+      const updated: SessionRecord = {
+        ...session,
+        state: "SETTLING",
+        settlementLeaseExpiresAt: new Date(now.getTime() + leaseMs).toISOString(),
+      };
+      transaction.set(reference, updated);
+      return updated;
+    });
+  }
+  async reserveRequest(sessionId: string, input: { operationKey: string; operationMaxCalls: number; maxTotalCalls: number; maxRequestsPerMinute: number; nowMs: number; expectedState: "ACTIVE" | "SETTLING" }): Promise<SessionRecord> {
+    const reference = this.collection("sessions").doc(sessionId);
+    return await this.firestore.runTransaction(async (transaction) => {
+      const snapshot = await transaction.get(reference);
+      if (!snapshot.exists) throw new Error("SESSION_NOT_FOUND");
+      const session = snapshot.data() as SessionRecord;
+      if (session.state !== input.expectedState) throw new Error("SESSION_NOT_ACTIVE");
       const timestamps = session.requestTimestamps.filter((timestamp) => timestamp > input.nowMs - 60_000);
       if ((session.operationCalls[input.operationKey] ?? 0) >= input.operationMaxCalls) throw new Error("OPERATION_CALL_LIMIT");
       if (session.calls >= input.maxTotalCalls) throw new Error("TOTAL_CALL_LIMIT");
@@ -83,6 +135,50 @@ export class FirestoreRepository implements Repository {
   async listReservations(sessionId: string): Promise<ReservationRecord[]> {
     const snapshot = await this.collection("reservations").where("sessionId", "==", sessionId).get();
     return snapshot.docs.map((document) => document.data() as ReservationRecord);
+  }
+  async createSettlementAttempt(attempt: SettlementAttemptRecord): Promise<SettlementAttemptRecord> {
+    const reference = this.collection("settlementAttempts").doc(attempt.attemptId);
+    return await this.firestore.runTransaction(async (transaction) => {
+      const snapshot = await transaction.get(reference);
+      if (snapshot.exists) return snapshot.data() as SettlementAttemptRecord;
+      transaction.create(reference, attempt);
+      return attempt;
+    });
+  }
+  async claimSettlementNonce(nonce: string, evidenceHash: string): Promise<boolean> {
+    const nonceId = createHash("sha256").update(nonce).digest("hex");
+    const reference = this.collection("settlementNonces").doc(nonceId);
+    return await this.firestore.runTransaction(async (transaction) => {
+      const snapshot = await transaction.get(reference);
+      if (snapshot.exists) {
+        return snapshot.get("evidenceHash") === evidenceHash;
+      }
+      transaction.create(reference, { evidenceHash });
+      return true;
+    });
+  }
+  async saveSettlementAttempt(attempt: SettlementAttemptRecord): Promise<SettlementAttemptRecord> {
+    const reference = this.collection("settlementAttempts").doc(attempt.attemptId);
+    return await this.firestore.runTransaction(async (transaction) => {
+      const snapshot = await transaction.get(reference);
+      if (!snapshot.exists) throw new Error("SETTLEMENT_ATTEMPT_NOT_FOUND");
+      const merged = mergeSettlementAttempt(
+        snapshot.data() as SettlementAttemptRecord,
+        attempt,
+      );
+      transaction.set(reference, merged);
+      return merged;
+    });
+  }
+  async getSettlementAttempt(attemptId: string): Promise<SettlementAttemptRecord | undefined> {
+    return requireData<SettlementAttemptRecord>((await this.collection("settlementAttempts").doc(attemptId).get()).data());
+  }
+  async listSettlementAttempts(sessionId?: string): Promise<SettlementAttemptRecord[]> {
+    const collection = this.collection("settlementAttempts");
+    const snapshot = sessionId === undefined
+      ? await collection.get()
+      : await collection.where("sessionId", "==", sessionId).get();
+    return snapshot.docs.map((document) => document.data() as SettlementAttemptRecord);
   }
   async getInventory(productId: string): Promise<InventoryRecord | undefined> {
     return requireData<InventoryRecord>((await this.collection("inventory").doc(productId).get()).data());

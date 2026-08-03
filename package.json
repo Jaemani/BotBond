@@ -1,6 +1,7 @@
 {
   "name": "botbond",
   "private": true,
+  "type": "module",
   "version": "0.1.0",
   "engines": {
     "node": ">=22"
@@ -10,14 +11,22 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "npm run build --workspace @botbond/contracts && npm run build --workspace @botbond/observability && npm run build --workspace @botbond/gateway && npm run build --workspace botbond-web",
-    "test": "npm run build --workspace @botbond/contracts && npm run build --workspace @botbond/observability && npm run test --workspaces --if-present",
-    "typecheck": "npm run build --workspace @botbond/contracts && npm run build --workspace @botbond/observability && npm run typecheck --workspaces --if-present",
-    "e2e": "npm run build --workspace @botbond/contracts && npm run build --workspace @botbond/observability && npm run e2e --workspace @botbond/gateway",
-    "test:firestore": "JAVA_HOME=/opt/homebrew/opt/openjdk@21 PATH=/opt/homebrew/opt/openjdk@21/bin:$PATH npx firebase-tools emulators:exec --only firestore --project botbond-test \"npm run test --workspace @botbond/gateway -- --run test/firestore-repository.test.ts\"",
-    "test:role-c": "npm exec --package typescript@5.9.3 ts-mocha -- -p tsconfig.json -t 1000000 tests/**/*.test.ts",
+    "build": "npm run build --workspace @botbond/contracts && npm run build --workspace @botbond/observability && npm run build --workspace @botbond/payment-client && npm run build --workspace @botbond/gateway && npm run build --workspace botbond-web",
+    "test": "npm run test:node && npm run test:python && npm run test:role-c",
+    "test:node": "npm run build --workspace @botbond/contracts && npm run build --workspace @botbond/observability && npm run build --workspace @botbond/payment-client && npm run test --workspaces --if-present",
+    "test:python": "scripts/test-python.sh",
+    "test:role-c": "ts-mocha -p tsconfig.json -t 1000000 tests/policy-hash.test.ts tests/payment-adapter.test.ts",
+    "test:role-c:onchain": "scripts/test-role-c-onchain.sh",
+    "test:firestore": "scripts/test-firestore.sh",
+    "typecheck": "npm run build --workspace @botbond/contracts && npm run build --workspace @botbond/observability && npm run build --workspace @botbond/payment-client && npm run typecheck --workspaces --if-present",
+    "e2e": "npm run build --workspace @botbond/contracts && npm run build --workspace @botbond/observability && npm run build --workspace @botbond/payment-client && npm run e2e --workspace @botbond/gateway",
     "build:program": "anchor build",
-    "verify": "npm run typecheck && npm test && npm run test:firestore && npm run build && npm run e2e",
+    "verify": "npm run typecheck && npm test && npm run test:firestore && npm run build && npm run smoke:runtime --workspace @botbond/gateway && npm run e2e",
+    "verify:all": "npm run verify && npm run verify:onchain",
+    "verify:onchain": "npm run test:role-c:onchain",
+    "verify:external": "npm run test:devnet",
+    "test:devnet": "scripts/devnet-evidence.sh",
+    "demo:live": "tsx scripts/live-demo.ts",
     "fixtures:demo": "python3 packages/demo-fixtures/generate.py && cp packages/demo-fixtures/01-normal-session.json packages/demo-fixtures/02-scope-denied.json packages/demo-fixtures/03-abandoned-reservation.json packages/demo-fixtures/index.json apps/web/public/fixtures/"
   },
   "devDependencies": {
@@ -28,6 +37,7 @@
     "@types/mocha": "^10.0.0",
     "@types/node": "^22.0.0",
     "chai": "^4.5.0",
+    "firebase-tools": "^15.25.1",
     "mocha": "^10.7.0",
     "ts-mocha": "^10.0.0",
     "typescript": "^5.8.3"

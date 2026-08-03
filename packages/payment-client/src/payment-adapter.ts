@@ -10,6 +10,7 @@
  * credential은 불투명 유지 — 어떤 결과/에러에도 원문을 되돌려주거나 로그하지 않는다.
  */
 import { createHmac, randomBytes, timingSafeEqual } from "crypto";
+import { DEFAULT_UNIT_PRICE_ATOMIC } from "@botbond/contracts";
 import type {
   AdapterResult,
   PaymentAdapter,
@@ -59,7 +60,7 @@ export class CappedSessionPaymentAdapter implements PaymentAdapter {
     unitPriceAtomic?: string;
   }) {
     this.secret = opts.hmacSecret;
-    const unit = opts.unitPriceAtomic ?? "1000";
+    const unit = opts.unitPriceAtomic ?? DEFAULT_UNIT_PRICE_ATOMIC;
     if (!isAtomic(unit)) throw new Error("unitPriceAtomic must be an atomic decimal string");
     this.unitPriceAtomic = BigInt(unit);
   }
@@ -71,7 +72,13 @@ export class CappedSessionPaymentAdapter implements PaymentAdapter {
     if (!isAtomic(input.usageCapAtomic)) return fail("AMOUNT_INVALID");
 
     const cached = this.challenges.get(input.sessionId);
-    if (cached) return cached;
+    if (cached) {
+      const challenge = cached.challenge
+        ? this.verifyToken(cached.challenge, "botbond-payment-challenge")
+        : null;
+      if (challenge?.amountAtomic !== input.usageCapAtomic) return fail("CHALLENGE_INVALID");
+      return cached;
+    }
 
     const token = this.sign({
       v: 1,

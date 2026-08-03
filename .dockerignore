@@ -1,0 +1,14 @@
+.git
+.next
+**/.next
+node_modules
+**/node_modules
+target
+.anchor
+test-ledger
+coverage
+firestore-debug.log
+*.log
+.env
+.env.*
+!.env.example

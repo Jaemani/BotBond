@@ -572,6 +572,8 @@ npm run demo:smoke
 
 Intent Compiler 내부 endpoint, Firestore, secret, settlement signer는 공개하지 않는다.
 
+현재 검증된 공개 URL과 최신 devnet transaction은 `docs/15-live-deployment-evidence.md`를 기준으로 한다. 소개서와 영상은 그 문서의 동일 session ID, policy hash, 금액, Explorer 링크를 사용한다.
+
 운영 체크:
 
 - demo reset을 인증된 관리 경로로 제한

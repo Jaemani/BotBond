@@ -1,0 +1,53 @@
+name: botbond-commerce-api
+subdomain: botbond-commerce
+title: "BotBond Demo Commerce API"
+description: "Scoped product and inventory calls for cooperative AI agents"
+category: shopping
+version: v1
+
+routing:
+  type: proxy
+  url: http://127.0.0.1:18080/
+accounting: pooled
+
+operator:
+  currencies:
+    usd: ["USDC"]
+  network: "localnet"
+  fee_payer: true
+  challenge_binding_secret: "${MPP_SECRET_KEY}"
+  realm: "botbond-commerce"
+
+session:
+  cap_usdc: 0.20
+  close_delay_ms: 2000
+  idle_timeout_options_seconds: [30, 120]
+
+endpoints:
+  - method: GET
+    path: "healthz"
+    description: "Gateway health check"
+
+  - method: GET
+    path: "v1/access/{sessionId}/products"
+    description: "List products inside a BotBond scoped session"
+    metering:
+      schemes: [x402-exact]
+      dimensions:
+        - direction: usage
+          unit: requests
+          scale: 1
+          tiers:
+            - price_usd: 0.001
+
+  - method: GET
+    path: "v1/access/{sessionId}/products/{productId}/inventory"
+    description: "Read live inventory inside a BotBond scoped session"
+    metering:
+      schemes: [x402-exact]
+      dimensions:
+        - direction: usage
+          unit: requests
+          scale: 1
+          tiers:
+            - price_usd: 0.001

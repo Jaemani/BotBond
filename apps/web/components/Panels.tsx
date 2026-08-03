@@ -1,6 +1,6 @@
 "use client";
 
-import type { ViewState } from "@/lib/types";
+import type { BotBondEventType, DemoStory, ViewState } from "@/lib/types";
 import { clockFrom, explorerUrl, shortHash, shortSig, usdc } from "@/lib/format";
 
 /* ------------------------------------------------------------------ shell */
@@ -21,6 +21,49 @@ export function Panel({
         <h2 className="panel-title">{title}</h2>
       </header>
       <div className="panel-body">{children}</div>
+    </section>
+  );
+}
+
+/* ---------------------------------------------------------- scenario proof */
+
+export function ScenarioProof({
+  story,
+  observedEventTypes,
+}: {
+  story?: DemoStory;
+  observedEventTypes: BotBondEventType[];
+}) {
+  if (!story) return null;
+  const observed = new Set(observedEventTypes);
+  const activeIndex = story.beats.findIndex((beat) => !observed.has(beat.eventType));
+
+  return (
+    <section className="scenario-proof" aria-label="Why this scenario matters">
+      <div className="proof-summary">
+        <span className="proof-eyebrow">WHY THIS MATTERS</span>
+        <p className="proof-question">{story.question}</p>
+        <p className="proof-outcome">{story.merchantOutcome}</p>
+      </div>
+      <ol className="proof-beats">
+        {story.beats.map((beat, index) => {
+          const complete = observed.has(beat.eventType);
+          const active = activeIndex === index;
+          return (
+            <li
+              className="proof-beat"
+              data-state={complete ? "complete" : active ? "active" : "pending"}
+              key={`${beat.eventType}-${beat.title}`}
+            >
+              <span className="proof-marker">{complete ? "✓" : String(index + 1).padStart(2, "0")}</span>
+              <span>
+                <strong>{beat.title}</strong>
+                <small>{beat.detail}</small>
+              </span>
+            </li>
+          );
+        })}
+      </ol>
     </section>
   );
 }

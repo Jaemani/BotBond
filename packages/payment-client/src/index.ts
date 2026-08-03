@@ -2,7 +2,7 @@
  * BotBond payment client — 역할 C가 A(web)·B(gateway)에 제공하는 안정 인터페이스.
  * docs/03-contracts.md §5 계약 기준. 내부 anchor/web3 세부를 밖으로 흘리지 않는다.
  */
-import * as anchor from "@coral-xyz/anchor";
+import anchor from "@coral-xyz/anchor";
 import {
   Connection,
   Keypair,
@@ -22,9 +22,9 @@ export type {
   SettlementAuthorizationEvidence,
   UsageSettlementResult,
 } from "@botbond/contracts";
-export * from "./bond-adapter";
-export * from "./payment-adapter";
-export * from "./policy-hash";
+export * from "./bond-adapter.js";
+export * from "./payment-adapter.js";
+export * from "./policy-hash.js";
 
 export const BOND_SEED = "bond";
 
@@ -114,7 +114,7 @@ export class BotBondClient {
       args.sessionNonce
     );
     const signature = await this.program.methods
-      .openBond(
+      .openBond!(
         Array.from(args.policyHash),
         new anchor.BN(args.sessionNonce.toString()),
         new anchor.BN(args.bondAmountAtomic.toString()),
@@ -140,7 +140,7 @@ export class BotBondClient {
   }): Promise<BondTxResult> {
     const bond = await this.fetchRaw(args.session);
     const signature = await this.program.methods
-      .closeValid(Array.from(args.receiptHash))
+      .closeValid!(Array.from(args.receiptHash))
       .accounts({
         settlementAuthority: args.settlementAuthority.publicKey,
         bondSession: args.session,
@@ -160,7 +160,7 @@ export class BotBondClient {
   }): Promise<BondTxResult> {
     const bond = await this.fetchRaw(args.session);
     const signature = await this.program.methods
-      .settleViolation(
+      .settleViolation!(
         Array.from(args.receiptHash),
         new anchor.BN(args.penaltyAtomic.toString())
       )
@@ -182,7 +182,7 @@ export class BotBondClient {
   }): Promise<BondTxResult> {
     const bond = await this.fetchRaw(args.session);
     const signature = await this.program.methods
-      .reclaimExpired()
+      .reclaimExpired!()
       .accounts({
         agent: args.agent.publicKey,
         bondSession: args.session,

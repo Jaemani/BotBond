@@ -3,8 +3,9 @@
  * 경계 규칙: 입출력은 전부 plain 값. anchor/web3 객체는 이 파일 밖으로 내보내지 않는다.
  */
 import { createHmac, createHash, timingSafeEqual } from "crypto";
+import { canonicalJson } from "@botbond/contracts";
 import { PublicKey, Signer } from "@solana/web3.js";
-import { BotBondClient, BondSessionView } from "./index";
+import { BotBondClient, BondSessionView } from "./index.js";
 import type {
   AdapterResult,
   BondAdapter,
@@ -51,8 +52,8 @@ export function canonicalReceiptHash(payload: Record<string, unknown>): string {
 export class SolanaBondAdapter implements BondAdapter {
   private readonly client: BotBondClient;
   private readonly settlementAuthority: Signer;
-  private readonly hmacSecret?: string;
-  /** sessionId → 온체인 bond account. verifyOpenBond에서만 등록된다. */
+  private readonly hmacSecret: string | undefined;
+  /** sessionId → 온체인 bond account. 캐시 miss 시 gateway가 저장한 bondAccount를 사용한다. */
   private readonly sessions = new Map<string, PublicKey>();
   /** 정산 idempotency 캐시: close:{sessionId} / expiry:{sessionId}:{reservationId} */
   private readonly settledResults = new Map<string, BondSettlementResult>();
@@ -107,6 +108,7 @@ export class SolanaBondAdapter implements BondAdapter {
 
   async requestValidClose(input: {
     sessionId: string;
+    bondAccount?: string;
     policyHash: string;
     amountAtomic: string;
     evidence?: SettlementAuthorizationEvidence;
@@ -115,13 +117,15 @@ export class SolanaBondAdapter implements BondAdapter {
     const cached = this.settledResults.get(idemKey);
     if (cached) return cached;
 
-    const session = this.sessions.get(input.sessionId);
+    const session = this.resolveSession(input.sessionId, input.bondAccount);
     if (!session) return fail("BOND_NOT_FOUND");
 
     const evidenceCheck = this.checkEvidence(input.evidence, {
+      sessionId: input.sessionId,
       outcome: "VALID_CLOSE",
       policyHash: input.policyHash,
       penaltyAtomic: "0",
+      bondRefundedAtomic: input.amountAtomic,
     });
     if (!evidenceCheck.ok) return evidenceCheck.result;
 
@@ -139,13 +143,17 @@ export class SolanaBondAdapter implements BondAdapter {
       return this.classifyFetchError(e);
     }
     if (view.status === "CLOSED") {
-      // 재시작 후 재호출 등 — 온체인 receipt와 대조해 idempotent 성공으로 회복
+      // 재시작 후 재호출 등 — 온체인 policy/receipt와 대조해 idempotent 성공으로 회복
+      if (view.policyHashHex !== normalizeHashHex(input.policyHash)) {
+        return fail("BOND_POLICY_MISMATCH");
+      }
       if (view.receiptHashHex === receiptHash) {
         return this.recoverSettled(idemKey, session, "0", view.bondAmountAtomic);
       }
       return fail("SETTLEMENT_CONFLICT");
     }
     if (view.status !== "OPEN") return fail("SETTLEMENT_CONFLICT");
+    if (view.policyHashHex !== normalizeHashHex(input.policyHash)) return fail("BOND_POLICY_MISMATCH");
     if (view.bondAmountAtomic !== input.amountAtomic) return fail("BOND_AMOUNT_MISMATCH");
 
     try {
@@ -171,6 +179,7 @@ export class SolanaBondAdapter implements BondAdapter {
 
   async requestExpiredReservationSettlement(input: {
     sessionId: string;
+    bondAccount?: string;
     policyHash: string;
     penaltyAtomic: string;
     maxPenaltyAtomic: string;
@@ -182,7 +191,7 @@ export class SolanaBondAdapter implements BondAdapter {
     const cached = this.settledResults.get(idemKey);
     if (cached) return cached;
 
-    const session = this.sessions.get(input.sessionId);
+    const session = this.resolveSession(input.sessionId, input.bondAccount);
     if (!session) return fail("BOND_NOT_FOUND");
 
     const penalty = BigInt(input.penaltyAtomic);
@@ -193,9 +202,11 @@ export class SolanaBondAdapter implements BondAdapter {
     }
 
     const evidenceCheck = this.checkEvidence(input.evidence, {
+      sessionId: input.sessionId,
       outcome: "EXPIRED_RESERVATION",
       policyHash: input.policyHash,
       penaltyAtomic: input.penaltyAtomic,
+      bondRefundedAtomic: (bondAmount - penalty).toString(),
       reservationId: input.reservationId,
     });
     if (!evidenceCheck.ok) return evidenceCheck.result;
@@ -215,6 +226,9 @@ export class SolanaBondAdapter implements BondAdapter {
       return this.classifyFetchError(e);
     }
     if (view.status === "VIOLATED") {
+      if (view.policyHashHex !== normalizeHashHex(input.policyHash)) {
+        return fail("BOND_POLICY_MISMATCH");
+      }
       if (view.receiptHashHex === receiptHash && view.settledPenaltyAtomic === input.penaltyAtomic) {
         const refunded = (bondAmount - penalty).toString();
         return this.recoverSettled(idemKey, session, input.penaltyAtomic, refunded);
@@ -222,6 +236,7 @@ export class SolanaBondAdapter implements BondAdapter {
       return fail("SETTLEMENT_CONFLICT");
     }
     if (view.status !== "OPEN") return fail("SETTLEMENT_CONFLICT");
+    if (view.policyHashHex !== normalizeHashHex(input.policyHash)) return fail("BOND_POLICY_MISMATCH");
     if (view.bondAmountAtomic !== input.bondAmountAtomic) return fail("BOND_AMOUNT_MISMATCH");
 
     try {
@@ -283,31 +298,62 @@ export class SolanaBondAdapter implements BondAdapter {
 
   // --- 내부 ---
 
-  /** evidence의 hash 형식·요청 바인딩·nonce replay·(가능하면) HMAC 서명을 검증. */
+  private resolveSession(sessionId: string, bondAccount?: string): PublicKey | undefined {
+    const cached = this.sessions.get(sessionId);
+    if (cached) return cached;
+    if (!bondAccount) return undefined;
+    try {
+      const session = new PublicKey(bondAccount);
+      this.sessions.set(sessionId, session);
+      return session;
+    } catch {
+      return undefined;
+    }
+  }
+
+  /** evidence의 hash 형식·요청 바인딩·nonce replay·HMAC 서명을 검증. */
   private checkEvidence(
     evidence: SettlementAuthorizationEvidence | undefined,
-    expect: { outcome: string; policyHash: string; penaltyAtomic: string; reservationId?: string }
+    expect: {
+      sessionId: string;
+      outcome: string;
+      policyHash: string;
+      penaltyAtomic: string;
+      bondRefundedAtomic: string;
+      reservationId?: string;
+    },
   ): EvidenceCheck {
-    if (!evidence) return { ok: true };
-    const hashHex = normalizeHashHex(evidence.evidenceHash);
-    if (!hashHex) return { ok: false, result: fail("EVIDENCE_INVALID") };
-    if (evidence.outcome !== expect.outcome) return { ok: false, result: fail("EVIDENCE_INVALID") };
+    if (!evidence || !this.hmacSecret) return { ok: false, result: fail("EVIDENCE_INVALID") };
+    const { evidenceHash, signature, ...payload } = evidence;
+    const expectedEvidenceHash = `sha256:${createHash("sha256").update(canonicalJson(payload)).digest("hex")}`;
+    const hashHex = normalizeHashHex(evidenceHash);
+    if (!hashHex || evidenceHash !== expectedEvidenceHash) {
+      return { ok: false, result: fail("EVIDENCE_INVALID") };
+    }
+    if (evidence.sessionId !== expect.sessionId || evidence.outcome !== expect.outcome) {
+      return { ok: false, result: fail("EVIDENCE_INVALID") };
+    }
     if (normalizeHashHex(evidence.policyHash) !== normalizeHashHex(expect.policyHash)) {
       return { ok: false, result: fail("EVIDENCE_INVALID") };
     }
-    if (evidence.penaltyAtomic !== expect.penaltyAtomic) return { ok: false, result: fail("EVIDENCE_INVALID") };
-    if (expect.reservationId && evidence.reservationId !== expect.reservationId) {
+    if (
+      evidence.penaltyAtomic !== expect.penaltyAtomic ||
+      evidence.bondRefundedAtomic !== expect.bondRefundedAtomic
+    ) {
+      return { ok: false, result: fail("EVIDENCE_INVALID") };
+    }
+    if (expect.reservationId !== undefined && evidence.reservationId !== expect.reservationId) {
       return { ok: false, result: fail("EVIDENCE_INVALID") };
     }
     if (this.seenNonces.has(evidence.nonce)) return { ok: false, result: fail("EVIDENCE_REPLAY") };
-    if (this.hmacSecret) {
-      const expected = createHmac("sha256", this.hmacSecret)
-        .update(evidence.evidenceHash)
-        .digest("hex");
-      const given = evidence.signature.replace(/^hmac-sha256:/, "");
-      const a = Buffer.from(expected, "hex");
-      const b = /^[0-9a-fA-F]+$/.test(given) ? Buffer.from(given, "hex") : Buffer.alloc(0);
-      if (a.length !== b.length || !timingSafeEqual(a, b)) return { ok: false, result: fail("EVIDENCE_INVALID") };
+    const expected = createHmac("sha256", this.hmacSecret)
+      .update(expectedEvidenceHash)
+      .digest("hex");
+    const given = signature.replace(/^hmac-sha256:/, "");
+    const a = Buffer.from(expected, "hex");
+    const b = /^[0-9a-fA-F]+$/.test(given) ? Buffer.from(given, "hex") : Buffer.alloc(0);
+    if (a.length !== b.length || !timingSafeEqual(a, b)) {
+      return { ok: false, result: fail("EVIDENCE_INVALID") };
     }
     return { ok: true, receiptHash: hashHex };
   }
@@ -334,7 +380,7 @@ export class SolanaBondAdapter implements BondAdapter {
     const result: BondSettlementResult = {
       status: "CONFIRMED",
       retryable: false,
-      providerReference: reference,
+      ...(reference ? { providerReference: reference } : {}),
       penaltyAtomic,
       bondRefundedAtomic: refundedAtomic,
     };

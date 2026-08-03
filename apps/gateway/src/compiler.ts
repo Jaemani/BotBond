@@ -74,14 +74,20 @@ export class FakeIntentCompiler implements IntentCompiler {
         maxCalls,
       };
     });
-    const merchantUsageMax = 200000n;
-    const merchantBondMax = wantsReservation ? 1000000n : 0n;
+    const merchantUsageMax = BigInt(catalog.maxUsageCapAtomic ?? input.budget.usageCapAtomic);
+    const merchantBondMax = wantsReservation
+      ? BigInt(catalog.maxBondAmountAtomic ?? input.budget.bondCapAtomic)
+      : 0n;
     const usage = BigInt(input.budget.usageCapAtomic) > merchantUsageMax ? merchantUsageMax : BigInt(input.budget.usageCapAtomic);
     const bond = BigInt(input.budget.bondCapAtomic) > merchantBondMax ? merchantBondMax : BigInt(input.budget.bondCapAtomic);
     if (BigInt(input.budget.usageCapAtomic) > merchantUsageMax) clamped.push("constraints.usageCapAtomic");
     if (BigInt(input.budget.bondCapAtomic) > merchantBondMax) clamped.push("constraints.bondAmountAtomic");
-    const penalty = bond < 200000n ? bond : 200000n;
-    const expiresAt = new Date(this.clock.now().getTime() + 5 * 60_000).toISOString();
+    const merchantPenaltyMax = BigInt(catalog.maxPenaltyAtomic ?? bond.toString());
+    const maxPenalty = bond < merchantPenaltyMax ? bond : merchantPenaltyMax;
+    const configuredExpiryPenalty = BigInt(catalog.defaultExpiryPenaltyAtomic ?? maxPenalty.toString());
+    const expiryPenalty = configuredExpiryPenalty < maxPenalty ? configuredExpiryPenalty : maxPenalty;
+    const sessionTtlSeconds = Math.min(300, catalog.maxSessionTtlSeconds ?? 300);
+    const expiresAt = new Date(this.clock.now().getTime() + sessionTtlSeconds * 1_000).toISOString();
     const policySeed = { merchantId: catalog.merchantId, agentWallet: input.agentWallet, purpose: input.task, allowedOperations, expiresAt };
     const deterministicId = createHash("sha256").update(canonicalJson(policySeed)).digest("hex").slice(0, 24);
     const policy: AccessPolicy = {
@@ -93,13 +99,20 @@ export class FakeIntentCompiler implements IntentCompiler {
       allowedOperations,
       constraints: {
         maxTotalCalls: allowedOperations.reduce((sum, operation) => sum + operation.maxCalls, 0),
-        maxRequestsPerMinute: 20,
+        maxRequestsPerMinute: catalog.maxRequestsPerMinute ?? 20,
         expiresAt,
         usageCapAtomic: usage.toString(),
         bondAmountAtomic: bond.toString(),
-        maxPenaltyAtomic: penalty.toString(),
+        maxPenaltyAtomic: maxPenalty.toString(),
       },
-      bondedActions: wantsReservation && bond > 0n ? [{ operationId: "reserve-inventory", maxActive: 1, ttlSeconds: 60, expiryPenaltyAtomic: penalty.toString() }] : [],
+      bondedActions: wantsReservation && bond > 0n
+        ? [{
+            operationId: "reserve-inventory",
+            maxActive: 1,
+            ttlSeconds: Math.min(60, sessionTtlSeconds),
+            expiryPenaltyAtomic: expiryPenalty.toString(),
+          }]
+        : [],
       settlement: {
         validClose: "REFUND_BOND",
         scopeViolation: "BOUNDED_PENALTY_AND_REFUND_REMAINDER",

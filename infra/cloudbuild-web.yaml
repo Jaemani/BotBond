@@ -1,0 +1,10 @@
+substitutions:
+  _REGION: us-central1
+  _IMAGE_TAG: manual
+
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args: ["build", "-f", "apps/web/Dockerfile", "-t", "${_REGION}-docker.pkg.dev/${PROJECT_ID}/botbond/web:${_IMAGE_TAG}", "."]
+
+images:
+  - "${_REGION}-docker.pkg.dev/${PROJECT_ID}/botbond/web:${_IMAGE_TAG}"

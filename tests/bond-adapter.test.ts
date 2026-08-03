@@ -9,20 +9,20 @@ import {
   getOrCreateAssociatedTokenAccount,
   mintTo,
 } from "@solana/spl-token";
-import { createHmac } from "crypto";
+import { createSettlementEvidence } from "@botbond/payment-client/settlement-evidence";
 import { assert } from "chai";
 import {
   BotBondClient,
   SolanaBondAdapter,
-  SettlementAuthorizationEvidence,
-  canonicalReceiptHash,
-} from "../packages/payment-client/src";
+} from "@botbond/payment-client";
+import type { SettlementAuthorizationEvidence } from "@botbond/contracts";
 
 const HMAC_SECRET = "local-slice-shared-secret";
 const BOND = 1_000_000n;
 const MAX_PENALTY = 500_000n;
 
 function makeEvidence(args: {
+  sessionId: string;
   outcome: "VALID_CLOSE" | "EXPIRED_RESERVATION";
   policyHash: string;
   penaltyAtomic: string;
@@ -30,34 +30,18 @@ function makeEvidence(args: {
   nonce: string;
   reservationId?: string;
 }): SettlementAuthorizationEvidence {
-  const payload = {
-    outcome: args.outcome,
+  return createSettlementEvidence({
+    sessionId: args.sessionId,
     policyHash: args.policyHash,
-    penaltyAtomic: args.penaltyAtomic,
-    refundAtomic: args.refundAtomic,
-    reservationId: args.reservationId ?? null,
-    nonce: args.nonce,
-  };
-  const issuedAt = new Date().toISOString();
-  const evidenceHash = canonicalReceiptHash(payload);
-  const signature = `hmac-sha256:${createHmac("sha256", HMAC_SECRET)
-    .update(evidenceHash)
-    .digest("hex")}`;
-  return {
-    version: "botbond-settlement-evidence/v1",
-    sessionId: "role-c-test-session",
-    evidenceHash,
-    authority: "gateway-local",
-    nonce: args.nonce,
-    issuedAt,
+    ...(args.reservationId ? { reservationId: args.reservationId } : {}),
     outcome: args.outcome,
-    policyHash: args.policyHash,
+    usageChargedAtomic: "0",
     penaltyAtomic: args.penaltyAtomic,
     bondRefundedAtomic: args.refundAtomic,
-    usageChargedAtomic: "0",
-    reservationId: args.reservationId,
-    signature,
-  };
+    nonce: args.nonce,
+    issuedAt: new Date().toISOString(),
+    authority: "gateway-local",
+  }, HMAC_SECRET);
 }
 
 describe("SolanaBondAdapter (docs/09 BondAdapter contract)", () => {
@@ -168,6 +152,7 @@ describe("SolanaBondAdapter (docs/09 BondAdapter contract)", () => {
   it("requestValidClose refunds fully, binds evidence hash on-chain, and is idempotent", async () => {
     const opened = await openAndVerify();
     const evidence = makeEvidence({
+      sessionId: opened.sessionId,
       outcome: "VALID_CLOSE",
       policyHash: opened.policyHash,
       penaltyAtomic: "0",
@@ -192,7 +177,7 @@ describe("SolanaBondAdapter (docs/09 BondAdapter contract)", () => {
     );
     // 체인에 evidence hash가 receipt로 바인딩됐는지
     const view = await client.fetchBondSession(new PublicKey(opened.bondAccount));
-    assert.equal(view.receiptHashHex, evidence.evidenceHash);
+    assert.equal(view.receiptHashHex, evidence.evidenceHash.replace(/^sha256:/, ""));
 
     // 같은 요청 재호출 → 같은 결과 (idempotency)
     const r2 = await adapter.requestValidClose({
@@ -207,6 +192,7 @@ describe("SolanaBondAdapter (docs/09 BondAdapter contract)", () => {
   it("rejects evidence with a reused nonce (replay) and a bad signature", async () => {
     const a = await openAndVerify();
     const evA = makeEvidence({
+      sessionId: a.sessionId,
       outcome: "VALID_CLOSE",
       policyHash: a.policyHash,
       penaltyAtomic: "0",
@@ -224,6 +210,7 @@ describe("SolanaBondAdapter (docs/09 BondAdapter contract)", () => {
     // 다른 세션에서 같은 nonce 재사용 → replay 거부
     const b = await openAndVerify();
     const evB = makeEvidence({
+      sessionId: b.sessionId,
       outcome: "VALID_CLOSE",
       policyHash: b.policyHash,
       penaltyAtomic: "0",
@@ -241,6 +228,7 @@ describe("SolanaBondAdapter (docs/09 BondAdapter contract)", () => {
 
     // 서명 위조 → EVIDENCE_INVALID
     const evBad = makeEvidence({
+      sessionId: b.sessionId,
       outcome: "VALID_CLOSE",
       policyHash: b.policyHash,
       penaltyAtomic: "0",
@@ -262,6 +250,7 @@ describe("SolanaBondAdapter (docs/09 BondAdapter contract)", () => {
     const opened = await openAndVerify();
     const penalty = 300_000n;
     const evidence = makeEvidence({
+      sessionId: opened.sessionId,
       outcome: "EXPIRED_RESERVATION",
       policyHash: opened.policyHash,
       penaltyAtomic: penalty.toString(),
@@ -316,6 +305,7 @@ describe("SolanaBondAdapter (docs/09 BondAdapter contract)", () => {
   it("recovers idempotently after cache loss, and conflicts on mismatched receipt", async () => {
     const opened = await openAndVerify();
     const evidence = makeEvidence({
+      sessionId: opened.sessionId,
       outcome: "VALID_CLOSE",
       policyHash: opened.policyHash,
       penaltyAtomic: "0",
@@ -362,6 +352,7 @@ describe("SolanaBondAdapter (docs/09 BondAdapter contract)", () => {
     });
     (conflicting as any).sessions.set(opened.sessionId, new PublicKey(opened.bondAccount));
     const other = makeEvidence({
+      sessionId: opened.sessionId,
       outcome: "VALID_CLOSE",
       policyHash: opened.policyHash,
       penaltyAtomic: "0",
@@ -381,6 +372,7 @@ describe("SolanaBondAdapter (docs/09 BondAdapter contract)", () => {
   it("getTransactionStatus returns the stable envelope", async () => {
     const opened = await openAndVerify();
     const evidence = makeEvidence({
+      sessionId: opened.sessionId,
       outcome: "VALID_CLOSE",
       policyHash: opened.policyHash,
       penaltyAtomic: "0",

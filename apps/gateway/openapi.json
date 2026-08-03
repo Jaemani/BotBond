@@ -11,7 +11,106 @@
         "scheme": "bearer"
       }
     },
-    "schemas": {}
+    "schemas": {
+      "def-0": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "task",
+          "agentWallet",
+          "budget"
+        ],
+        "properties": {
+          "task": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "agentWallet": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "budget": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "usageCapAtomic",
+              "bondCapAtomic"
+            ],
+            "properties": {
+              "usageCapAtomic": {
+                "type": "string",
+                "pattern": "^(0|[1-9][0-9]*)$"
+              },
+              "bondCapAtomic": {
+                "type": "string",
+                "pattern": "^(0|[1-9][0-9]*)$"
+              }
+            }
+          }
+        },
+        "title": "IntentRequest"
+      },
+      "def-1": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "intentId",
+          "sessionId"
+        ],
+        "properties": {
+          "intentId": {
+            "type": "string",
+            "pattern": "^int_[A-Za-z0-9_-]+$"
+          },
+          "sessionId": {
+            "type": "string",
+            "pattern": "^ses_[A-Za-z0-9_-]{4,124}$"
+          }
+        },
+        "title": "PaymentChallengeRequest"
+      },
+      "def-2": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "intentId",
+          "policyHash",
+          "paymentCredential"
+        ],
+        "properties": {
+          "intentId": {
+            "type": "string",
+            "pattern": "^int_[A-Za-z0-9_-]+$"
+          },
+          "policyHash": {
+            "type": "string",
+            "pattern": "^sha256:[a-f0-9]{64}$"
+          },
+          "sessionId": {
+            "type": "string",
+            "pattern": "^ses_[A-Za-z0-9_-]{4,124}$"
+          },
+          "paymentCredential": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8192
+          },
+          "paymentChallenge": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8192
+          },
+          "bondAccount": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "title": "SessionRequest"
+      }
+    }
   },
   "paths": {
     "/openapi.json": {
@@ -23,7 +122,25 @@
         }
       }
     },
+    "/healthz": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
     "/.well-known/agent-access": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/products": {
       "get": {
         "responses": {
           "200": {
@@ -43,6 +160,35 @@
     },
     "/v1/intents": {
       "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/def-0"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/v1/payment-challenges": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/def-1"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Default Response"
@@ -52,6 +198,16 @@
     },
     "/v1/sessions": {
       "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/def-2"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Default Response"

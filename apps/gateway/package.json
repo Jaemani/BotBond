@@ -8,9 +8,11 @@
     "dev": "tsx watch src/server.ts",
     "start": "node dist/src/server.js",
     "build": "tsc -p tsconfig.json",
+    "smoke:runtime": "node dist/scripts/smoke-runtime.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "e2e": "tsx scripts/e2e.ts",
+    "e2e:solana": "tsx scripts/e2e-solana.ts",
     "process-expirations": "node dist/scripts/process-expirations.js",
     "process-expirations:dev": "tsx scripts/process-expirations.ts",
     "openapi": "tsx scripts/export-openapi.ts"

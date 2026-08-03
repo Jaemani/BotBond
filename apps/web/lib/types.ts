@@ -32,9 +32,21 @@ export type Fixture = {
   title: string;
   summary: string;
   expectedOutcome: Record<string, string>;
+  /** Fixture-only narration. It never participates in access decisions. */
+  story?: DemoStory;
   sessionId: string;
   policyHash: string;
   events: BotBondEvent[];
+};
+
+export type DemoStory = {
+  question: string;
+  merchantOutcome: string;
+  beats: Array<{
+    eventType: BotBondEventType;
+    title: string;
+    detail: string;
+  }>;
 };
 
 export type TxStatus = "PENDING" | "CONFIRMED" | "FAILED";

@@ -9,10 +9,11 @@ spike 판정(`docs/c/paysh-spike.md` 2026-08-02): **fallback 확정.**
 
 - pay.sh가 실제 제공(검증됨): per-call x402 결제 rail — sandbox에서 402 → 지불 → 응답 실동작.
 - pay.sh가 제공 표면 확인(E2E 미검증): MPP subscription delegation (per-period 금액 상한, Plan PDA 필요).
-- 세션 usage cap 집행: **gateway 사전검사 + bond 프로그램 정산** (pay.sh 기능이라고 주장하지 않음).
-- 피치 문구: "pay.sh x402로 per-call 과금, 세션 상한은 BotBond bond가 담보."
+- 세션 usage cap 집행: **Gateway 사전검사 + PaymentAdapter bounded settlement** (pay.sh 기능이라고 주장하지 않음).
+- Solana bond는 reservation 같은 bonded action의 객관적 expiry만 담보한다. read-only session cap을 담보한다고 표현하지 않는다.
+- 피치 문구: "pay.sh x402는 per-call 결제 rail이며, 세션 사용 상한은 BotBond Gateway가 결정적으로 집행합니다. Solana bond는 예약 같은 bonded action만 담보합니다."
 
-데모 흐름에서 이 어댑터의 위치: agent가 pay.sh(sandbox) 402 결제 완료 → 결제 authority가 `issueCredential(sessionId, usageLimitAtomic)`로 불투명 credential 발급 → agent가 gateway에 제시 → `verifyCredential`이 CONFIRMED + `usageLimitAtomic` 반환 → gateway activation 규칙(`usageLimitAtomic >= usageCapAtomic`) 판정.
+데모 흐름에서 이 어댑터의 위치: agent가 pay.sh(sandbox) 402 결제 완료 → 결제 authority가 `issueCredential(sessionId, usageLimitAtomic)`로 불투명 credential 발급 → agent가 gateway에 제시 → `verifyCredential`이 CONFIRMED + `usageLimitAtomic` 반환 → gateway activation 규칙(`usageLimitAtomic >= usageCapAtomic`) 판정. 이 bridge는 live pay.sh verification이 아니므로 Gateway가 결과에 `FAKE_ADAPTER_FIXTURE`를 덧붙인다.
 
 ## 안정 실패코드 표 (변경은 CCR)
 

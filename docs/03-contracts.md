@@ -96,10 +96,20 @@ Intent Compiler는 이 목록 밖의 operation을 만들 수 없다.
   "intentEndpoint": "/v1/intents",
   "sessionEndpoint": "/v1/sessions",
   "catalogUrl": "/v1/catalog",
-  "payment": {"provider": "pay.sh", "mode": "SPIKE_DEPENDENT"},
-  "bond": {"network": "solana-devnet", "programId": "TBD"}
+  "payment": {
+    "provider": "pay.sh",
+    "mode": "LOCAL_HMAC_CREDENTIAL_BRIDGE",
+    "railEvidence": "SANDBOX_VERIFIED",
+    "integration": "FAKE_ADAPTER_FIXTURE"
+  },
+  "bond": {
+    "network": "solana-devnet",
+    "programId": "HoamYxgGuZoQerLGthZK8K4vLKTvEraZ4o7N8fkjk4bc"
+  }
 }
 ```
+
+`railEvidence`는 pay.sh sandbox에서 x402 per-call 흐름을 별도로 검증했다는 뜻이다. 현재 Gateway의 HMAC credential bridge가 live pay.sh 검증이라는 뜻이 아니며, live adapter가 공급되기 전에는 반드시 fake marker를 유지한다.
 
 ### `POST /v1/intents`
 
@@ -123,6 +133,27 @@ Intent Compiler는 이 목록 밖의 operation을 만들 수 없다.
   "explanation": ["Price and stock are required", "Seller contacts excluded"],
   "paymentTerms": {},
   "bondTerms": {}
+}
+```
+
+### `POST /v1/payment-challenges`
+
+client-generated session ID와 intent의 usage cap을 묶은 challenge를 만든다. 현재 HMAC bridge는 local fixture이며 응답에 `FAKE_ADAPTER_FIXTURE`를 포함한다.
+
+요청:
+
+```json
+{"intentId":"int_...","sessionId":"ses_client_generated"}
+```
+
+응답:
+
+```json
+{
+  "sessionId":"ses_client_generated",
+  "usageCapAtomic":"200000",
+  "challenge":"opaque-value",
+  "fixtureMarker":"FAKE_ADAPTER_FIXTURE"
 }
 ```
 
@@ -228,6 +259,7 @@ pub struct BondSession {
     pub max_penalty: u64,
     pub settled_penalty: u64,
     pub expires_at: i64,
+    pub session_nonce: u64,
     pub status: u8,
     pub bump: u8,
 }

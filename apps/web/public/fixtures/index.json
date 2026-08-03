@@ -3,17 +3,17 @@
   "scenarios": [
     {
       "id": "01-normal-session",
-      "label": "정상 세션",
+      "label": "계정 없이 제한된 구매",
       "outcome": "CLOSED"
     },
     {
       "id": "02-scope-denied",
-      "label": "범위 밖 차단",
+      "label": "범위는 막고, 정상 작업은 계속",
       "outcome": "CLOSED"
     },
     {
       "id": "03-abandoned-reservation",
-      "label": "예약 방치",
+      "label": "마지막 재고 회수와 제한 정산",
       "outcome": "VIOLATED"
     }
   ]

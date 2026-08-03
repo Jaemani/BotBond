@@ -12,7 +12,7 @@
     "sessionId": "ses_fixture_normal",
     "occurredAt": "2026-08-02T12:00:00.100Z",
     "type": "POLICY_COMPILED",
-    "data": {"policyHash": "sha256:120cece73bb7e5229db531c96d82b9d210a419ac9a901a34ccf72b136d346feb", "fixtureMarker": "FAKE_COMPILER_FIXTURE"},
+    "data": {"policyHash": "sha256:0fa81a98b90a317baf33b20bd55401cf63f27f9a1dc7e5cb439237f564605ed6", "fixtureMarker": "FAKE_COMPILER_FIXTURE"},
     "traceId": "tr_fixture_normal"
   },
   {

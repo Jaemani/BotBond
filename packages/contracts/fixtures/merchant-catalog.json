@@ -6,8 +6,8 @@
   "maxSessionTtlSeconds": 300,
   "maxUsageCapAtomic": "200000",
   "maxBondAmountAtomic": "1000000",
-  "maxPenaltyAtomic": "200000",
-  "defaultExpiryPenaltyAtomic": "200000",
+  "maxPenaltyAtomic": "300000",
+  "defaultExpiryPenaltyAtomic": "250000",
   "operations": [
     {
       "id": "search-products",

@@ -16,5 +16,8 @@ target/
 test-ledger/
 .firebase/
 firestore-debug.log
+firebase-debug.log
 .claude/settings.local.json
+.claude/worktrees/
 .tokensave/
+.secrets/

@@ -10,7 +10,7 @@
 | Explorer | https://explorer.solana.com/address/HoamYxgGuZoQerLGthZK8K4vLKTvEraZ4o7N8fkjk4bc?cluster=devnet |
 | 클러스터 | devnet |
 | Anchor 버전 | 1.1.2 (avm) / TS 클라이언트 `@coral-xyz/anchor` 0.32.1 |
-| IDL | `target/idl/botbond.json` |
+| IDL | `packages/payment-client/idl/botbond.json` (tracked runtime asset), `target/idl/botbond.json` (Anchor build output) |
 | 배포 tx | `5eCzLUn1UJa7SxfQT1n5oLz6fhsxVbxDAoQ3EL3MG2npzWBfWZkJTis6Fq1iUAoKXhHZYPkHunobTND1vKpSJwyo` (slot 480678232, 2026-08-02 21:20 KST) |
 | Upgrade authority | `BCvDRgFChtunjJ2mnGnBF9HGRvZm2wTSPgNWJxvCg6Hb` |
 | 데모 SPL mint | `5FeWpV8Zj9XZPSCisNcNw2VeWda2GajPhJiku4BoxAHP` (decimals 6) |

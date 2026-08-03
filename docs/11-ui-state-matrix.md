@@ -69,13 +69,15 @@ transaction 결과 모델을 확정한 뒤 fixture에 추가한다. 그때까지
 4. **판정은 게이트웨이가 한다.** 프론트에 `if (path === "/seller-contacts")`
    같은 코드를 쓰지 않는다.
 
-## 5. B에게 요청하는 것
+## 5. B 연동 결정 (2026-08-03)
 
-- SSE 스트림이 이 표의 이벤트 순서를 그대로 따르는지 확인
-- `REQUEST_DENIED`의 `phase` 필드(`PRE_SESSION` / `IN_SESSION`) 유지
-- `REQUEST_ALLOWED`에 `usageSpentAtomic` 누적값 포함 (프론트가 합산하지 않도록)
-- `RESERVATION_CREATED`의 TTL tick을 별도 이벤트로 보낼지, 프론트 타이머로
-  처리할지 결정 필요 → 현재 fixture는 `tick: true` 방식
+- SSE는 shared envelope와 문서화된 terminal ordering을 따른다.
+- `phase`는 shared contract가 아니다. Gateway가 생략하면 프론트는 session lifecycle로
+  pre-session / in-session을 표시한다.
+- `usageSpentAtomic` 누적값은 Gateway 보장 필드가 아니다. 프론트는
+  `REQUEST_ALLOWED.chargedAtomic`을 합산하고 terminal `USAGE_SETTLED`를 최종값으로 쓴다.
+- TTL tick 이벤트는 live SSE에 없다. 프론트는 `expiresAt`과 현재 시각으로 남은 시간을
+  계산하며, 기존 fixture의 synthetic tick은 무시한다.
 
 ## 6. C에게 요청하는 것
 

@@ -22,6 +22,39 @@ BotBond는 사이트가 처음 보는 AI 에이전트에게도 **서명된 사�
 - 온체인 평판이 Sybil 공격을 해결한다.
 - pay.sh가 보증금·슬래싱까지 기본 제공한다.
 
+## Live demo
+
+- Web: https://botbond-web-752329931962.us-central1.run.app
+- Agent discovery: https://botbond-gateway-752329931962.us-central1.run.app/.well-known/agent-access
+- Solana program: https://explorer.solana.com/address/HoamYxgGuZoQerLGthZK8K4vLKTvEraZ4o7N8fkjk4bc?cluster=devnet
+- Latest verified run: [docs/15-live-deployment-evidence.md](docs/15-live-deployment-evidence.md)
+
+The public Web app replays labelled evidence unless it is opened with a private live-session token. Secrets and scoped session tokens are never committed.
+
+## Reproduce locally
+
+Requirements: Node.js 22+, Python 3.12+, Java 21, Firebase CLI, Rust, Solana CLI, and Anchor.
+
+```bash
+npm install
+npm run verify
+```
+
+`npm run verify` runs TypeScript, Python, Anchor contract, Firestore emulator, production build, runtime smoke, and fake-adapter E2E checks. Real devnet execution additionally needs a funded Solana devnet wallet and the secrets described in [infra/README.md](infra/README.md).
+
+To run the connected live path after configuring those secrets:
+
+```bash
+GOOGLE_CLOUD_PROJECT=botbond-demo-2026-jaeman \
+BOTBOND_PAYMENT_SECRET=<secret> \
+BOTBOND_EVIDENCE_SECRET=<secret> \
+npm run demo:live
+```
+
+The command creates a new policy with Vertex AI, opens a new Solana devnet bond, exercises allowed and denied Gateway calls, waits for the real reservation TTL, restores inventory, and performs bounded settlement. It writes the private live URL to `.secrets/live-demo-session.json`; that file is gitignored.
+
+Payment claim boundary: pay.sh x402 per-call payment is verified against its sandbox rail. The deployed Gateway currently activates sessions through an HMAC adapter marked `FAKE_ADAPTER_FIXTURE`; it must not be described as live pay.sh credential verification.
+
 ## 문서 읽는 순서
 
 1. [제품 명세](docs/01-product-spec.md)
@@ -32,6 +65,7 @@ BotBond는 사이트가 처음 보는 AI 에이전트에게도 **서명된 사�
 6. [Claude/Antigravity 역할별 시작 프롬프트](docs/06-claude-kickoff-prompts.md)
 7. [결정 로그](docs/00-decision-log.md)
 8. [제출 소개서·데모 영상·재현 가이드](docs/14-team-demo-and-pitch-flow.md)
+9. [라이브 배포 및 온체인 증거](docs/15-live-deployment-evidence.md)
 
 ## 권장 저장소 구조
 

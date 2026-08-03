@@ -46,6 +46,7 @@ GET  /openapi.json
 GET  /.well-known/agent-access
 GET  /v1/catalog
 POST /v1/intents
+POST /v1/payment-challenges
 POST /v1/sessions
 ANY  /v1/access/{sessionId}/*
 POST /v1/sessions/{sessionId}/close
@@ -97,6 +98,8 @@ FAKE_ADAPTER_FIXTURE
 
 Never create Explorer links from fake provider references.
 
+The current HMAC payment credential bridge is a fixture even when the bond adapter uses real Solana. Payment events and challenges therefore retain `FAKE_ADAPTER_FIXTURE`; a real Solana provider reference may still be Explorer-eligible on its own.
+
 ## Expected UI states
 
 - Intent received
@@ -111,6 +114,12 @@ Never create Explorer links from fake provider references.
 - Bond refunded
 - Bounded penalty settled
 - Session closed
+
+Expiration terminal ordering is stable:
+
+```text
+RESERVATION_EXPIRED → PENALTY_SETTLED → USAGE_SETTLED
+```
 
 ## Copy-paste local flow
 

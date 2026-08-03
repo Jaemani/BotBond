@@ -21,6 +21,14 @@ describe("CappedSessionPaymentAdapter (docs/09 계약)", () => {
     assert.equal(r2.challenge, r1.challenge, "같은 세션 재요청은 같은 challenge");
   });
 
+  it("createChallenge: 같은 세션에 다른 cap 재사용은 CHALLENGE_INVALID", async () => {
+    const adapter = new CappedSessionPaymentAdapter({ hmacSecret: SECRET });
+    await adapter.createChallenge({ sessionId: "ses_cap_conflict", usageCapAtomic: "200000" });
+    const conflict = await adapter.createChallenge({ sessionId: "ses_cap_conflict", usageCapAtomic: "100000" });
+    assert.equal(conflict.status, "FAILED");
+    assert.equal(conflict.failureCode, "CHALLENGE_INVALID");
+  });
+
   it("createChallenge: float/음수/빈 금액은 AMOUNT_INVALID", async () => {
     const adapter = new CappedSessionPaymentAdapter({ hmacSecret: SECRET });
     for (const bad of ["1.5", "-3", "", "01", "1e6"]) {

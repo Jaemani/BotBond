@@ -24,14 +24,14 @@ GET /products → 403 UNKNOWN AUTOMATED CLIENT
 
 입력:
 
-> 150만 원 이하 노트북 20개의 가격과 재고를 비교하고, 가장 좋은 상품 하나를 60초만 예약해줘. 판매자 연락처는 필요 없어.
+> 등록된 노트북의 가격과 재고를 비교하고, 가장 좋은 상품 하나를 60초만 예약해줘. 판매자 연락처는 필요 없어.
 
 화면에서 Gemini가 다음을 생성한다.
 
-- `/products`, `/inventory`만 허용
+- 실제 demo catalog의 `/products`, `/products/{id}/inventory`만 허용
 - `/reservations`는 최대 1회, 60초만 허용
 - `price`, `stock`, `shipping`만 허용
-- 최대 25회, 5분
+- 최대 5회, 5분
 - usage cap 0.20 USDC
 - refundable bond 1.00 USDC
 
@@ -46,10 +46,10 @@ GET /products → 403 UNKNOWN AUTOMATED CLIENT
 
 ### 1:45–2:15 — 정상 에이전트
 
-허용 호출 20개가 흐르고 상품 하나를 예약한다. 에이전트가 선택을 마친 뒤 예약을 해제하고 세션을 닫는다.
+실제 catalog의 두 SKU를 조회하고 상품 하나를 예약한다. 에이전트가 선택을 마친 뒤 예약을 해제하고 세션을 닫는다.
 
 ```text
-Usage settled: 0.02 USDC
+Usage settled: 0.003 USDC
 Bond refunded: 1.00 USDC
 ```
 
@@ -70,7 +70,9 @@ Bond penalty: 0
 
 ### 2:45–3:00 — 결론
 
-> pay.sh는 사용한 API 비용을 정산했고, Solana는 환불 가능한 책임을 강제했으며, Gemini는 사람의 목적을 기계가 집행할 수 있는 계약으로 바꿨습니다.
+> pay.sh는 실제 허용 호출 비용만 정산했고, Solana는 희소 재고를 잡았을 때만 환불 가능한 책임을 강제했으며, Gemini는 사람의 목적을 기계가 집행할 수 있는 계약으로 바꿨습니다.
+
+> 구현 메모: “20개 노트북”은 Intent Compiler의 권한·상한 eval로 유지한다. 화면 데모는 실제 Gateway `DemoCommerceApi`의 두 SKU(`lap-1`, `lap-2`)를 사용해 trace, 재고, 정산 결과가 서로 일치하도록 한다.
 
 ## 2. 화면 구성
 
