@@ -500,7 +500,10 @@ export function BShopExperience({ initialSurface = "overview" }: { initialSurfac
     setPublicRunError(null);
     setPublicRunProgress("Opening a sponsored Solana bond…");
     try {
-      const run = await createPublicDemoRun(BEHAVIOR_BY_SCENARIO[scenarioId] ?? "normal");
+      const run = await createPublicDemoRun(
+        BEHAVIOR_BY_SCENARIO[scenarioId] ?? "normal",
+        setPublicRunProgress,
+      );
       setLive({ url: `/gateway${run.eventStream}`, token: run.token });
       setPublicRunProgress("Bond confirmed · connecting agent…");
       await executePublicDemoRun(run, setPublicRunProgress);

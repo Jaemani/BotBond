@@ -40,11 +40,25 @@ async function requestJson<T>(path: string, init: RequestInit = {}): Promise<T> 
   return body ? JSON.parse(body) as T : {} as T;
 }
 
-export async function createPublicDemoRun(behavior: PublicDemoBehavior): Promise<PublicDemoRun> {
-  return await requestJson<PublicDemoRun>("/gateway/v1/public-demo-runs", {
-    method: "POST",
-    body: JSON.stringify({ behavior }),
-  });
+export async function createPublicDemoRun(
+  behavior: PublicDemoBehavior,
+  onWaiting?: Progress,
+): Promise<PublicDemoRun> {
+  // The sponsor wallet and merchant fixture are intentionally serialized.
+  // Do not make a reviewer manually retry while another bond-open is confirming.
+  for (let attempt = 0; attempt < 48; attempt += 1) {
+    try {
+      return await requestJson<PublicDemoRun>("/gateway/v1/public-demo-runs", {
+        method: "POST",
+        body: JSON.stringify({ behavior }),
+      });
+    } catch (cause) {
+      if (!(cause instanceof Error) || cause.message !== "PUBLIC_DEMO_BUSY" || attempt === 47) throw cause;
+      onWaiting?.("Another agent is opening a devnet bond · retrying automatically…");
+      await new Promise((resolve) => setTimeout(resolve, 2_500));
+    }
+  }
+  throw new Error("PUBLIC_DEMO_BUSY");
 }
 
 export async function executePublicDemoRun(run: PublicDemoRun, progress: Progress): Promise<void> {
