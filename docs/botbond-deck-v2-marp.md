@@ -40,11 +40,11 @@ style: |
 
 <span class="kicker">BOTBOND · BONDED AGENT ACCESS</span>
 
-# API keys were built for organizations, not autonomous agents.
+# 처음 보는 AI 에이전트도<br/>가입 없이 필요한 API만 쓸 수 있어야 합니다
 
-BotBond는 처음 보는 외부 에이전트에게도 **목적·범위·비용이 제한된 API 세션**을 즉시 발급하는 merchant-installed gateway입니다.
+BotBond는 공급자가 직접 설치하는 에이전트 접근 게이트웨이입니다. 에이전트가 할 일을 설명하면, 공급자는 그 작업에 필요한 API 권한·호출 한도·비용을 정해 즉시 세션을 엽니다.
 
-환불 가능한 온체인 담보가 예약 같은 사후 의무를 보증합니다.
+예약이나 주문처럼 나중에 책임이 생기는 작업은 환불 가능한 온체인 담보로 관리합니다.
 
 <span class="muted">Permissionless agent onboarding for structured APIs · Google Cloud × Solana</span>
 
@@ -52,15 +52,17 @@ BotBond는 처음 보는 외부 에이전트에게도 **목적·범위·비용�
 
 <span class="kicker">01 · TARGET & PROBLEM</span>
 
-# 정상적인 미등록 에이전트가 쓸 공식 경로가 없다
+# API key만으로는 일회성 에이전트를 받기 어렵습니다
 
 <div class="grid3">
 <div class="card"><h3>공급자</h3><p>가격·재고·견적·예약 API<br/>MCP와 전문 데이터 공급자</p></div>
-<div class="card"><h3>에이전트</h3><p>HTTP/MCP 요청과 wallet을 제어하는 구매·조달·여행·운영 agent</p></div>
-<div class="card"><h3>현재 선택지</h3><p>unknown automation을 차단하거나 가입·심사·계약 후 장기 API key 발급</p></div>
+<div class="card"><h3>에이전트</h3><p>HTTP/MCP 요청과 지갑을 제어하는 구매·조달·여행·운영 에이전트</p></div>
+<div class="card"><h3>오늘의 선택지</h3><p>알 수 없는 자동화를 막거나, 가입·심사·계약을 거친 뒤 장기 API key를 발급</p></div>
 </div>
 
-> BotBond의 경쟁자는 CAPTCHA가 아니라 **API key 발급 절차**입니다.
+한 번의 가격 비교나 재고 확인을 하려는 에이전트에게 장기 계정은 과합니다. 반대로 공급자는 아무 에이전트에게나 API를 열 수 없습니다.
+
+> BotBond는 이 사이에 있는 **짧고 제한적인 공식 접근 경로**입니다.
 
 제외 대상: 학습 크롤러, 은폐형 악성 봇, 임의 사이트 우회, 운영자가 통합하지 않은 웹페이지
 
@@ -68,51 +70,52 @@ BotBond는 처음 보는 외부 에이전트에게도 **목적·범위·비용�
 
 <span class="kicker">02 · THE GAP</span>
 
-# 기존 도구가 남긴 한 칸
+# 기존 보안과 결제 사이에 빈 자리가 있습니다
 
 | 방식 | 잘하는 일 | 남는 공백 |
 |---|---|---|
-| Cloudflare / WAF | 비협조적 트래픽 차단 | 협조적인 unknown agent onboarding |
+| Cloudflare / WAF | 비협조적 트래픽 차단 | 협조적인 미등록 에이전트의 온보딩 |
 | API key | 장기 고객 인증·청구 | 일회성 접근의 가입·심사 비용 |
 | Rate limit | 호출량 통제 | 자연어 목적과 endpoint 의미 |
 | pay-per-use | 데이터 사용료 | 예약 등 사후 의무의 담보 |
-| Web Bot Auth | 알려진 agent identity | 미등록 agent의 즉시 책임 증명 |
+| Web Bot Auth | 알려진 에이전트의 신원 확인 | 미등록 에이전트가 즉시 책임을 보일 방법 |
 
-**Web Bot Auth proves identity. BotBond makes bounded behavior economically accountable.**
+BotBond는 WAF나 API key를 대체하지 않습니다. 장기 고객은 API key를 쓰고, 비협조적 트래픽은 WAF가 막습니다. BotBond는 그 사이에서 처음 보는 에이전트에게 필요한 만큼만 접근권을 발급합니다.
 
 ---
 
 <span class="kicker">03 · PRODUCT SURFACES</span>
 
-# BotBond가 첫 화면이고, BShop은 merchant 사례다
+# 제품은 네 가지 경로에서 작동합니다
 
-<div class="routes">
-<div class="card"><h3><code>/</code> BotBond Overview</h3><p>unknown agent → scoped access → refundable bond라는 제품 메커니즘과 각 진입점</p></div>
-<div class="card"><h3><code>/shop</code> Customer Shop</h3><p>사람의 일반 쇼핑 경로. BotBond UI가 개입하지 않습니다.</p></div>
-<div class="card"><h3><code>/agent</code> External Agent</h3><p>403 → discovery → intent → policy → bond → scoped session</p></div>
-<div class="card"><h3><code>/merchant</code> Merchant Ops</h3><p>재고, 허용/차단 요청, refund/penalty, Explorer 증거</p></div>
-<div class="card"><h3><code>/integrate</code> Developer Setup</h3><p>공개 discovery와 자기 wallet으로 실행하는 agent 예제</p></div>
+<div class="grid2">
+<div class="card"><h3><code>/shop</code> Customer Shop</h3><p>사람은 평소처럼 상품을 보고 구매합니다. 일반 고객 흐름에는 BotBond가 나타나지 않습니다.</p></div>
+<div class="card"><h3><code>/agent</code> External Agent</h3><p>처음 보는 에이전트는 거부 응답에서 공식 진입점을 발견하고, 작업·권한·담보 조건을 확인합니다.</p></div>
+<div class="card"><h3><code>/merchant</code> Merchant Ops</h3><p>운영자는 허용 범위, 세션 상태, 예약, 반환·정산 내역을 봅니다.</p></div>
+<div class="card"><h3><code>/integrate</code> Developer Setup</h3><p>공급자는 discovery 문서와 예제로 자신의 에이전트 또는 API를 연결합니다.</p></div>
 </div>
 
-제품 설명·고객·에이전트·운영자·개발자의 목적과 정보가 서로 섞이지 않습니다.
+<span class="muted">Overview는 이 네 경로와 작동 원리를 소개하는 시작 화면입니다.</span>
 
 ---
 
 <span class="kicker">04 · DEPLOYMENT</span>
 
-# Cloudflare를 우회하지 않는다
+# 일반 API는 닫아두고 에이전트 경로만 따로 엽니다
 
 <div class="grid2">
 <div class="card"><h3>일반 자동화 요청</h3><pre>Agent
   → Cloudflare / WAF
-    → 기존 정책 또는 차단</pre><p>비협조적 자동화는 계속 차단합니다.</p></div>
-<div class="card"><h3>운영자가 연 agent route</h3><pre>Agent
+    → 기존 정책 또는 차단</pre><p>운영자는 기존 보안 정책을 그대로 유지합니다.</p></div>
+<div class="card"><h3>운영자가 연 에이전트 경로</h3><pre>Agent
   → WAF allowlisted path
     → BotBond Gateway
-      → Scoped Origin API</pre><p>협조적인 미등록 agent만 조건부로 온보딩합니다.</p></div>
+  → Scoped Origin API</pre><p>작업과 조건에 동의한 에이전트만 이 경로로 들어옵니다.</p></div>
 </div>
 
-공개 경로: <code>/.well-known/agent-access</code> · <code>/v1/intents</code> · <code>/v1/sessions</code> · <code>/v1/access/*</code>
+WAF를 건너뛰면 공급자는 기존 보안 정책과 접근 통제권을 잃습니다. BotBond가 차단을 풀어 주면 악성 자동화도 같은 문을 사용할 수 있습니다. 그래서 BotBond는 WAF 뒤에서, 운영자가 허용한 경로에만 붙습니다. 이 경로에서는 처음 보는 에이전트도 정해진 조건으로 세션을 열 수 있습니다.
+
+일반 웹/API는 계속 닫아두고, <code>/.well-known/agent-access</code>와 범위가 제한된 에이전트 API만 별도 정책으로 엽니다.
 
 데모의 최초 403은 **BShop edge policy 재현**이며 실제 Cloudflare zone 이벤트가 아닙니다.
 
@@ -120,11 +123,11 @@ BotBond는 처음 보는 외부 에이전트에게도 **목적·범위·비용�
 
 <span class="kicker">05 · INTENT COMPILER</span>
 
-# 자연어가 최소 권한 계약이 된다
+# 에이전트는 API 구조 대신 할 일을 설명합니다
 
 <div class="grid2">
-<div><h3>Agent request</h3><blockquote>1,500 이하 노트북의 가격과 재고를 비교하고 마지막 한 대를 예약한 뒤 해제해줘. 판매자 연락처와 리뷰는 필요 없어.</blockquote></div>
-<div><h3>Gemini + merchant catalog</h3><pre>{
+<div><h3>에이전트의 작업 요청</h3><blockquote>1,500 이하 노트북의 가격과 재고를 비교하고 마지막 한 대를 예약한 뒤 해제해줘. 판매자 연락처와 리뷰는 필요 없어.</blockquote></div>
+<div><h3>공급자 정책 초안</h3><pre>{
   "allowed": [
     "GET /products",
     "GET /products/{id}/inventory",
@@ -136,13 +139,15 @@ BotBond는 처음 보는 외부 에이전트에게도 **목적·범위·비용�
 }</pre></div>
 </div>
 
-Gemini는 정책을 **제안**하고, Gateway가 endpoint·field·rate·TTL을 결정론적으로 집행합니다. AI는 돈을 가져갈 권한이 없습니다.
+같은 가격·재고 비교라도 상점마다 endpoint와 field 이름이 다릅니다. 에이전트가 API 구조를 직접 추측하면 공급자 문서를 매번 학습해야 하고, 넓은 권한을 요구하기 쉽습니다. BotBond는 에이전트의 작업 설명과 공급자가 제공한 API catalog를 맞춰, 그 작업에 필요한 범위만 담은 정책 초안을 만듭니다.
+
+Gemini는 정책 초안을 만들고, Gateway가 endpoint·field·rate·TTL을 결정론적으로 집행합니다. 세션이 시작된 뒤 AI가 권한을 넓히거나 돈을 정산하지 않습니다.
 
 ---
 
 <span class="kicker">06 · REQUEST OUTCOMES</span>
 
-# 요청이 어디서 멈췄는지 증명한다
+# 세션 안에서는 약속한 범위만 실행됩니다
 
 | 시도 | 결과 | Origin 도달 | 담보 변화 |
 |---|---|---:|---:|
@@ -158,7 +163,7 @@ Gemini는 정책을 **제안**하고, Gateway가 endpoint·field·rate·TTL을 �
 
 <span class="kicker">07 · ARCHITECTURE</span>
 
-# 두 실행 경로가 하나의 Gateway에서 만난다
+# 요청부터 정산까지 역할을 나눴습니다
 
 <pre>Sponsored Browser Agent ── HMAC demo bridge ─┐
                                                ├─ BotBond Gateway · Cloud Run
@@ -174,7 +179,7 @@ Own-wallet Agent CLI ── pay.sh x402 sandbox ──┘    ├─ Vertex AI Ge
 
 <span class="kicker">08 · IMPLEMENTATION TRUTH</span>
 
-# 실제와 재현을 한 표에서 구분한다
+# 지금 동작하는 범위와 데모 경계
 
 | 구성 | 상태 | 검증 증거 |
 |---|---|---|
@@ -191,24 +196,26 @@ Own-wallet Agent CLI ── pay.sh x402 sandbox ──┘    ├─ Vertex AI Ge
 
 <span class="kicker">09 · 3-MINUTE DEMO</span>
 
-# 실제 경계를 숨기지 않고 증명한다
+# 3분 영상에서 제품 흐름을 보여줍니다
 
-1. `/agent`에서 live Gateway의 unknown request `403`과 discovery를 확인한다.
-2. `/integrate`의 connection check에서 discovery `200`, direct `403`, pay.sh gate `402`를 확인한다.
-3. browser의 sponsored run으로 Gemini policy, 새 Solana devnet bond open, scoped `200`, private `403`, refund/settlement Explorer를 생성한다.
-4. **별도 terminal segment**에서 own-wallet agent가 pay.sh sandbox `402 → payment → scoped 200`을 수행하고 두 Explorer URL을 출력한다.
+<div class="grid2">
+<div class="card"><h3>1. 사람의 쇼핑</h3><p><code>/shop</code>에서 일반 고객은 기존처럼 상품을 보고 구매합니다. BotBond는 이 경로를 바꾸지 않습니다.</p></div>
+<div class="card"><h3>2. 에이전트의 첫 요청</h3><p><code>/agent</code>에서 미등록 에이전트가 일반 API를 요청해 <code>403</code>을 받고, discovery 문서에서 공식 에이전트 경로를 찾습니다.</p></div>
+<div class="card"><h3>3. 제한된 세션</h3><p>에이전트가 작업을 설명하면 policy·담보 조건이 제시됩니다. browser flow는 새 Solana devnet bond와 scoped <code>200</code>, private <code>403</code>을 보여줍니다.</p></div>
+<div class="card"><h3>4. 정산과 외부 에이전트</h3><p>정상 종료는 반환, 예약 방치는 제한 정산으로 끝납니다. 별도 terminal에서는 own-wallet 에이전트가 pay.sh sandbox의 <code>402 → payment → 200</code>을 실행합니다.</p></div>
+</div>
 
-영상은 각 segment의 새 session ID와 signature를 사용한다. 서로 다른 rail을 하나의 session처럼 편집하지 않는다.
+영상의 browser flow와 own-wallet pay.sh flow는 서로 다른 실행 경로로 표시합니다. 하나의 세션처럼 편집하지 않습니다.
 
 ---
 
 <span class="kicker">10 · REPRODUCIBLE SUBMISSION</span>
 
-# 누구나 같은 경로를 실행할 수 있다
+# 심사위원이 직접 확인할 수 있습니다
 
 <div class="grid2">
-<div class="card"><h3>Public product</h3><p><code>botbond-bshop.vercel.app</code></p><p>Shop · Agent · Merchant · Integrate</p></div>
-<div class="card"><h3>Bring your own agent</h3><pre>npm run example:external-agent -- \
+<div class="card"><h3>라이브 제품</h3><p><code>botbond-bshop.vercel.app</code></p><p>Shop · Agent · Merchant · Integrate</p></div>
+<div class="card"><h3>내 지갑으로 실행</h3><pre>npm run example:external-agent -- \
   --gateway https://... \
   --wallet ~/.config/solana/id.json</pre></div>
 </div>
@@ -217,4 +224,4 @@ Own-wallet Agent CLI ── pay.sh x402 sandbox ──┘    ├─ Vertex AI Ge
 
 Program: <code>EG9r…KaRKR</code> · asset: devnet test mint, not USDC
 
-> Unknown agents do not need instant trust. They need bounded access and enforceable accountability.
+> 처음 보는 에이전트에게 필요한 것은 즉시 신뢰가 아니라, 범위가 분명하고 정산 규칙이 정해진 접근권입니다.
