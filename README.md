@@ -24,7 +24,8 @@ BotBond는 사이트가 처음 보는 AI 에이전트에게도 **서명된 사�
 
 ## Live demo
 
-- Web: https://botbond-web-752329931962.us-central1.run.app
+- BShop product demo: https://botbond-bshop.vercel.app
+- Cloud Run Web fallback: https://botbond-web-752329931962.us-central1.run.app
 - Agent discovery: https://botbond-gateway-752329931962.us-central1.run.app/.well-known/agent-access
 - Solana program: https://explorer.solana.com/address/HoamYxgGuZoQerLGthZK8K4vLKTvEraZ4o7N8fkjk4bc?cluster=devnet
 - Latest verified run: [docs/15-live-deployment-evidence.md](docs/15-live-deployment-evidence.md)
@@ -54,6 +55,12 @@ npm run demo:live
 The command creates a new policy with Vertex AI, opens a new Solana devnet bond, exercises allowed and denied Gateway calls, waits for the real reservation TTL, restores inventory, and performs bounded settlement. It writes the private live URL to `.secrets/live-demo-session.json`; that file is gitignored.
 
 Payment claim boundary: pay.sh x402 per-call payment is verified against its sandbox rail. The deployed Gateway currently activates sessions through an HMAC adapter marked `FAKE_ADAPTER_FIXTURE`; it must not be described as live pay.sh credential verification.
+
+The Vercel demo is organized as three real product surfaces rather than a presentation rail:
+
+- `Shop`: ordinary product browsing and human checkout
+- `Agent API`: unknown-client `403`, official discovery, bounded access, and agent behavior
+- `Merchant Ops`: shared inventory, allowed/denied requests, expiry, penalty, and refund
 
 ## 문서 읽는 순서
 

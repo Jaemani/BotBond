@@ -8,6 +8,7 @@ This page records one continuous live run. It is deployment evidence, not a fixt
 
 | Service | URL | Verification |
 |---|---|---|
+| BShop product demo | https://botbond-bshop.vercel.app | Vercel production, HTTP 200, Playwright flows passed |
 | Product Web | https://botbond-web-752329931962.us-central1.run.app | HTTP 200 |
 | Agent discovery | https://botbond-gateway-752329931962.us-central1.run.app/.well-known/agent-access | HTTP 200 |
 | Intent API docs | https://botbond-intent-agent-752329931962.us-central1.run.app/docs | HTTP 200 |
@@ -17,6 +18,14 @@ Cloud Run revisions used for the run:
 
 - Gateway: `botbond-gateway-00002-t9k`
 - Web: `botbond-web-00002-s8t`
+
+Vercel deployment:
+
+- Project: `botbond-bshop`
+- Production alias: https://botbond-bshop.vercel.app
+- Deployment: `dpl_GfLXHfzurALj5fFCwVocNKgW6EW2`
+- Gateway proxy: HTTP 200 at `/gateway/.well-known/agent-access`
+- Browser verification: human checkout, scoped/denied agent path, and abandoned-reservation settlement all passed
 
 ## Continuous live run
 

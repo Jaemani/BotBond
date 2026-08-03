@@ -31,12 +31,12 @@ import type { LiveEventStream } from "@/lib/usePlayer";
 import { usePlayer } from "@/lib/usePlayer";
 
 const SCENARIOS = [
-  { id: "01-normal-session", label: "Normal completion" },
-  { id: "02-scope-denied", label: "Scope denied" },
-  { id: "03-abandoned-reservation", label: "Reservation expiry" },
+  { id: "01-normal-session", label: "Complete purchase", detail: "Allowed calls · full bond returned" },
+  { id: "02-scope-denied", label: "Request private data", detail: "403 blocked · no penalty" },
+  { id: "03-abandoned-reservation", label: "Abandon last-unit hold", detail: "TTL expiry · bounded settlement" },
 ];
 
-const FLOW = ["Access", "Intent", "Contract", "Session", "Settlement"];
+type Surface = "shop" | "agent" | "operations";
 
 function liveStreamFromLocation(): LiveEventStream | null {
   if (typeof window === "undefined") return null;
@@ -61,54 +61,32 @@ function stageFor(v: ViewState): number {
   return 1;
 }
 
-function BrandHeader({
-  stage,
-  scenarioId,
-  setScenarioId,
+function CommerceHeader({
+  surface,
+  setSurface,
   live,
   liveStatus,
 }: {
-  stage: number;
-  scenarioId: string;
-  setScenarioId: (id: string) => void;
+  surface: Surface;
+  setSurface: (surface: Surface) => void;
   live: boolean;
   liveStatus: string;
 }) {
   return (
-    <>
-      <header className="brand-header">
-        <div className="brand-lockup">
-          <span className="brand-mark"><ShieldCheck weight="duotone" /></span>
-          <span className="brand-name">BotBond</span>
-          <span className="brand-divider" />
-          <span className="merchant-name">Northstar Supply</span>
-          <span className="protected-label"><ShieldCheck weight="fill" /> BotBond-protected</span>
-        </div>
-        <div className="demo-controls">
-          <span className={live ? "mode-badge live" : "mode-badge"}>{live ? `LIVE · ${liveStatus}` : "DEMO SIMULATION"}</span>
-          {!live && (
-            <label className="scenario-select">
-              <span className="sr-only">Demo scenario</span>
-              <select value={scenarioId} onChange={(event) => setScenarioId(event.target.value)}>
-                {SCENARIOS.map((scenario) => <option key={scenario.id} value={scenario.id}>{scenario.label}</option>)}
-              </select>
-              <CaretDown weight="bold" />
-            </label>
-          )}
-        </div>
-      </header>
-      <nav className="flow-nav" aria-label="Agent access progress">
-        {FLOW.map((label, index) => {
-          const step = index + 1;
-          return (
-            <div className="flow-step" data-state={step < stage ? "complete" : step === stage ? "active" : "pending"} key={label}>
-              <span>{step < stage ? <Check weight="bold" /> : step}</span>
-              <strong>{label}</strong>
-            </div>
-          );
-        })}
+    <header className="commerce-header">
+      <button className="shop-brand" onClick={() => setSurface("shop")} aria-label="BShop home">
+        <span className="shop-brand-mark">B</span><span>BShop</span>
+      </button>
+      <nav className="surface-nav" aria-label="BShop navigation">
+        <button data-active={surface === "shop"} onClick={() => setSurface("shop")}>Shop</button>
+        <button data-active={surface === "agent"} onClick={() => setSurface("agent")}>Agent API</button>
+        <button data-active={surface === "operations"} onClick={() => setSurface("operations")}>Merchant Ops</button>
       </nav>
-    </>
+      <div className="commerce-meta">
+        {live && <span className="live-connection"><Circle weight="fill" /> LIVE · {liveStatus}</span>}
+        <span className="protected-label"><ShieldCheck weight="fill" /> Agent access by BotBond</span>
+      </div>
+    </header>
   );
 }
 
@@ -130,7 +108,7 @@ function StoreNav() {
   );
 }
 
-function ProductDetail() {
+function ProductDetail({ stock, onAddToCart, onAgentAccess }: { stock: number; onAddToCart: () => void; onAgentAccess: () => void }) {
   return (
     <section className="product-detail" id="product">
       <div className="breadcrumbs">Home <span>/</span> Laptops <span>/</span> NovaBook Air</div>
@@ -145,9 +123,9 @@ function ProductDetail() {
           <div className="price">1,499.00 USDC</div>
           <p className="subtle">Or pay with USDC. <a href="#learn">Learn more</a></p>
           <div className="specs">13.6″ Liquid Retina · M3 Chip · 16GB RAM · 512GB SSD</div>
-          <div className="last-unit"><WarningCircle weight="duotone" /><div><strong>Last unit · 1 available</strong><span>Order now to secure the final unit.</span></div></div>
-          <div className="buy-row"><label>Quantity<select defaultValue="1"><option>1</option></select></label><button>Add to cart</button></div>
-          <p className="checkout-note"><ShieldCheck weight="duotone" /> Protected checkout with BotBond <a href="#learn">Learn how</a></p>
+          <div className={stock === 0 ? "last-unit sold-out" : "last-unit"}><WarningCircle weight="duotone" /><div><strong>{stock === 0 ? "Temporarily held" : `Last unit · ${stock} available`}</strong><span>{stock === 0 ? "An agent reservation currently holds this item." : "Order now to secure the final unit."}</span></div></div>
+          <div className="buy-row"><label>Quantity<select defaultValue="1" disabled={stock === 0}><option>1</option></select></label><button onClick={onAddToCart} disabled={stock === 0}>{stock === 0 ? "Unavailable" : "Add to cart"}</button></div>
+          <p className="checkout-note"><ShieldCheck weight="duotone" /> Automated buyers can use our <button onClick={onAgentAccess}>official Agent API</button></p>
         </div>
       </div>
       <div className="benefits">
@@ -159,29 +137,43 @@ function ProductDetail() {
   );
 }
 
+function Storefront({ stock, onAddToCart, onAgentAccess }: { stock: number; onAddToCart: () => void; onAgentAccess: () => void }) {
+  return <main className="shop-surface"><div className="shop-announcement">Free shipping on business laptop orders · Live inventory</div><StoreNav /><ProductDetail stock={stock} onAddToCart={onAddToCart} onAgentAccess={onAgentAccess} /></main>;
+}
+
+function CartDrawer({ open, placed, onClose, onCheckout }: { open: boolean; placed: boolean; onClose: () => void; onCheckout: () => void }) {
+  if (!open) return null;
+  return <div className="drawer-backdrop" onClick={onClose}><aside className="cart-drawer" onClick={(event) => event.stopPropagation()}>
+    <div className="drawer-head"><strong>{placed ? "Order confirmed" : "Your cart"}</strong><button onClick={onClose} aria-label="Close cart"><X /></button></div>
+    {placed ? <div className="order-success"><CheckCircle weight="duotone" /><h2>NovaBook Air is yours.</h2><p>Order BSH-2048 has been placed. This is the normal human checkout path—no agent bond required.</p><button className="primary-action" onClick={onClose}>Continue shopping</button></div> : <>
+      <div className="cart-line"><Image src="/assets/novabook-air.png" alt="NovaBook Air" width={112} height={84} /><div><strong>NovaBook Air</strong><span>Graphite · 512GB</span><b>1,499.00 USDC</b></div></div>
+      <div className="cart-total"><span>Total</span><strong>1,499.00 USDC</strong></div>
+      <button className="primary-action" onClick={onCheckout}>Checkout</button>
+    </>}
+  </aside></div>;
+}
+
 function AccessDenied({ onContinue, live }: { onContinue: () => void; live: boolean }) {
   return (
-    <div className="access-layout">
-      <div><StoreNav /><ProductDetail /></div>
-      <aside className="access-sheet">
-        <div className="sheet-meta"><span>1 of 5 · Access</span><X /></div>
-        <div className="blocked-icon"><LockKey weight="duotone" /></div>
-        <h2>Unknown agent blocked</h2>
-        <p>This merchant does not accept unrestricted automated access.</p>
-        <div className="request-card">
-          <span>Request</span>
-          <code>GET /products/novabook-air/inventory</code>
-          <LockKey />
-          <span>Status</span>
-          <strong>403</strong>
-        </div>
-        <button className="primary-action" onClick={onContinue} disabled={live}>
-          <LockKey /> {live ? "Waiting for gateway events" : "Request scoped access"}
-        </button>
-        <a className="policy-link" href="#policy">View agent access policy <ArrowSquareOut /></a>
-        <div className="discovery-note"><Code /> Official route discovered at <code>/.well-known/agent-access</code></div>
-      </aside>
-    </div>
+    <main className="agent-portal">
+      <div className="portal-intro"><span className="eyebrow">BSHOP AGENT API</span><h1>Buy from BShop without an API key.</h1><p>Unknown agents start with no access. Submit a bounded job and refundable bond to receive a short-lived session.</p></div>
+      <div className="api-entry-grid">
+        <section className="api-request-builder">
+          <div className="section-head"><div><TerminalWindow /><strong>Request tester</strong></div><span className="client-badge">ProcureKit · unregistered</span></div>
+          <label>Endpoint<div className="endpoint-input"><span>GET</span><code>/products/novabook-air/inventory</code><button aria-label="Send request"><ArrowRight /></button></div></label>
+          <div className="response-block denied"><div><span>Response</span><strong>403 Forbidden</strong></div><pre>{`{\n  "error": "UNKNOWN_AUTOMATED_CLIENT",\n  "agent_access": "/.well-known/agent-access"\n}`}</pre></div>
+        </section>
+        <aside className="official-lane">
+          <span className="official-icon"><ShieldCheck weight="duotone" /></span>
+          <span className="eyebrow">OFFICIAL ACCESS LANE</span>
+          <h2>Restricted access is available.</h2>
+          <p>BShop accepts unknown agents when purpose, cost and behavior are bounded in advance.</p>
+          <ul><li><Check /> No account or API-key review</li><li><Check /> Merchant-specific least privilege</li><li><Check /> Refundable on-chain bond</li></ul>
+          <button className="primary-action" onClick={onContinue} disabled={live}><LockKey /> {live ? "Waiting for live gateway events" : "Request bounded access"}<ArrowRight /></button>
+          <div className="discovery-note"><Code /> Discovered at <code>/.well-known/agent-access</code></div>
+        </aside>
+      </div>
+    </main>
   );
 }
 
@@ -189,12 +181,12 @@ function IntentRequest({ v, onCompile, live }: { v: ViewState; onCompile: () => 
   const [draft, setDraft] = useState(v.task ?? "Compare the price and live inventory of up to 20 laptops under 1,500 USDC. Do not access seller contacts or customer reviews.");
   return (
     <main className="workspace narrow-workspace">
-      <div className="workspace-heading"><span className="eyebrow">AGENT ACCESS REQUEST</span><h1>Describe the job, not the API.</h1><p>Northstar Supply will convert this request into the smallest enforceable scope.</p></div>
+      <div className="workspace-heading"><span className="eyebrow">BSHOP ACCESS REQUEST</span><h1>Describe the job, not the API.</h1><p>BShop converts this request into the smallest enforceable scope supported by its catalog.</p></div>
       <section className="intent-card">
         <div className="agent-identity"><span><TerminalWindow weight="duotone" /></span><div><strong>ProcureKit Agent</strong><small>Unregistered · wallet 7Yq4…sP2a</small></div><span className="identity-status">UNKNOWN</span></div>
         <label className="intent-field">Purpose<textarea value={draft} onChange={(event) => setDraft(event.target.value)} /></label>
         <div className="request-constraints"><label>Expected calls<input value="25" readOnly /></label><label>Session duration<input value="5 minutes" readOnly /></label><label>Maximum usage<input value="0.20 USDC" readOnly /></label></div>
-        <div className="compiler-explainer"><Sparkle weight="duotone" /><div><strong>Gemini Intent Compiler</strong><span>Maps this natural-language job to Northstar’s own endpoint and field catalog. It cannot settle or slash funds.</span></div></div>
+        <div className="compiler-explainer"><Sparkle weight="duotone" /><div><strong>Gemini Intent Compiler</strong><span>Maps this natural-language job to BShop’s endpoint and field catalog. It cannot settle or slash funds.</span></div></div>
         <button className="primary-action" onClick={onCompile} disabled={live || draft.trim().length === 0}><Sparkle /> {live ? "Waiting for compiled policy" : "Compile access contract"}<ArrowRight /></button>
       </section>
     </main>
@@ -218,7 +210,7 @@ function AccessContract({ v, onActivate, live }: { v: ViewState; onActivate: () 
             {(policy?.allowedOperations ?? []).map((operation) => <PolicyRow key={`${operation.method}-${operation.pathTemplate}`} allowed path={`${operation.method} ${operation.pathTemplate}`} fields={`${operation.allowedResponseFields.join(", ")} · max ${operation.maxCalls}`} />)}
             {v.excluded.map((entry) => <PolicyRow key={entry.path} allowed={false} path={entry.path} fields={entry.reason} />)}
           </div>
-          <div className="signature-row"><span><small>AGENT</small><strong>7Yq4…sP2a</strong></span><span><small>MERCHANT</small><strong>Northstar Supply</strong></span><ShieldCheck weight="duotone" /></div>
+          <div className="signature-row"><span><small>AGENT</small><strong>7Yq4…sP2a</strong></span><span><small>MERCHANT</small><strong>BShop Commerce</strong></span><ShieldCheck weight="duotone" /></div>
         </section>
         <aside className="terms-card">
           <h2>Session terms</h2>
@@ -277,13 +269,44 @@ function SettlementReceipt({ v, fixtureMode, onReset }: { v: ViewState; fixtureM
   );
 }
 
+function AgentRunSelector({ scenarioId, onChange, disabled }: { scenarioId: string; onChange: (id: string) => void; disabled: boolean }) {
+  return <div className="agent-run-selector"><div><span className="eyebrow">CLIENT BEHAVIOR</span><strong>Choose what the external agent attempts</strong></div><div className="run-options">
+    {SCENARIOS.map((scenario) => <button key={scenario.id} data-active={scenarioId === scenario.id} onClick={() => onChange(scenario.id)} disabled={disabled}><span>{scenario.label}</span><small>{scenario.detail}</small></button>)}
+  </div></div>;
+}
+
+function MerchantOperations({ v, onOpenAgent }: { v: ViewState; onOpenAgent: () => void }) {
+  const stock = v.reservation?.status === "HELD" ? 0 : 1;
+  const latest = v.trace.slice(-6).reverse();
+  return <main className="operations-surface">
+    <div className="ops-heading"><div><span className="eyebrow">BSHOP MERCHANT OPS</span><h1>Agent commerce activity</h1><p>Inventory and access decisions from the same storefront and Gateway.</p></div><button className="secondary-action" onClick={onOpenAgent}>Open Agent API <ArrowRight /></button></div>
+    <section className="ops-kpis"><div><span>NovaBook Air inventory</span><strong>{stock}</strong><small>{stock === 0 ? "Held by an agent" : "Available for checkout"}</small></div><div><span>Session state</span><strong>{v.sessionState}</strong><small>{v.callCount} allowed · {v.deniedCount} denied</small></div><div><span>Bond state</span><strong>{v.bondPhase}</strong><small>{usdc(v.penaltyAtomic)} USDC settled</small></div></section>
+    <div className="ops-grid"><section className="access-outcomes"><div className="section-head"><div><ShieldCheck /><strong>How BShop handles automation</strong></div></div>
+      <div className="outcome-row"><span className="outcome-icon success"><Check /></span><div><strong>Scoped request</strong><small>Price, stock and reservation calls reach the commerce API.</small></div><b>200</b></div>
+      <div className="outcome-row"><span className="outcome-icon denied"><LockKey /></span><div><strong>Unknown or private-data request</strong><small>Blocked before origin; no protected data leaves BShop.</small></div><b>403</b></div>
+      <div className="outcome-row"><span className="outcome-icon warning"><ClockCountdown /></span><div><strong>Abandoned reservation</strong><small>Inventory returns after TTL; settlement stays under the signed ceiling.</small></div><b>0.25</b></div>
+    </section><section className="ops-feed"><div className="section-head"><div><TerminalWindow /><strong>Current session</strong></div><code>{v.policyHash ? shortHash(v.policyHash) : "No contract yet"}</code></div>
+      {latest.length === 0 ? <div className="empty-stream">No agent activity yet. Open the Agent API to send a request.</div> : <div className="ops-events">{latest.map((row) => <div key={row.id}><span data-kind={row.kind}>{row.kind === "DENIED" ? <X /> : <Check />}</span><div><strong>{row.method} {row.path}</strong><small>{row.detail || row.headline}</small></div><time>{new Date(row.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</time></div>)}</div>}
+    </section></div>
+  </main>;
+}
+
 export default function Page() {
   const [scenarioId, setScenarioId] = useState(SCENARIOS[0].id);
   const [fixture, setFixture] = useState<Fixture | null>(null);
   const [live, setLive] = useState<LiveEventStream | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [surface, setSurface] = useState<Surface>("shop");
+  const [cartOpen, setCartOpen] = useState(false);
+  const [orderPlaced, setOrderPlaced] = useState(false);
 
-  useEffect(() => setLive(liveStreamFromLocation()), []);
+  useEffect(() => {
+    const stream = liveStreamFromLocation();
+    setLive(stream);
+    const requestedSurface = new URLSearchParams(window.location.search).get("surface");
+    if (stream) setSurface("agent");
+    else if (requestedSurface === "agent" || requestedSurface === "operations" || requestedSurface === "shop") setSurface(requestedSurface);
+  }, []);
 
   useEffect(() => {
     if (live) return;
@@ -307,16 +330,33 @@ export default function Page() {
     policy: cursorAfter(fixture, "POLICY_COMPILED"),
     active: cursorAfter(fixture, "SESSION_ACTIVATED"),
   }), [fixture]);
+  const stock = v.reservation?.status === "HELD" ? 0 : 1;
+  const changeScenario = (id: string) => {
+    setScenarioId(id);
+    player.reset();
+  };
+  const navigateSurface = (next: Surface) => {
+    setSurface(next);
+    const url = new URL(window.location.href);
+    if (next === "shop") url.searchParams.delete("surface");
+    else url.searchParams.set("surface", next);
+    window.history.replaceState({}, "", url);
+  };
 
   return (
     <div className="app-shell">
-      <BrandHeader stage={stage} scenarioId={scenarioId} setScenarioId={(id) => { setScenarioId(id); player.reset(); }} live={Boolean(live)} liveStatus={player.liveStatus} />
+      <CommerceHeader surface={surface} setSurface={navigateSurface} live={Boolean(live)} liveStatus={player.liveStatus} />
       {loadError && <div className="load-error">Could not load demo evidence: {loadError}</div>}
-      {stage === 1 && <AccessDenied onContinue={() => player.seek(positions.intent)} live={Boolean(live)} />}
-      {stage === 2 && <IntentRequest v={v} onCompile={() => player.seek(positions.policy)} live={Boolean(live)} />}
-      {stage === 3 && <AccessContract v={v} onActivate={() => player.seek(positions.active)} live={Boolean(live)} />}
-      {stage === 4 && <ActiveSession v={v} onRun={player.play} playing={player.playing} onPause={player.pause} scenarioId={scenarioId} live={Boolean(live)} />}
-      {stage === 5 && <SettlementReceipt v={v} fixtureMode={v.fixtureMode} onReset={player.reset} />}
+      {surface === "shop" && <Storefront stock={stock} onAddToCart={() => { setOrderPlaced(false); setCartOpen(true); }} onAgentAccess={() => navigateSurface("agent")} />}
+      {surface === "agent" && <div className="agent-surface"><AgentRunSelector scenarioId={scenarioId} onChange={changeScenario} disabled={Boolean(live) || player.playing} />
+        {stage === 1 && <AccessDenied onContinue={() => player.seek(positions.intent)} live={Boolean(live)} />}
+        {stage === 2 && <IntentRequest v={v} onCompile={() => player.seek(positions.policy)} live={Boolean(live)} />}
+        {stage === 3 && <AccessContract v={v} onActivate={() => player.seek(positions.active)} live={Boolean(live)} />}
+        {stage === 4 && <ActiveSession v={v} onRun={player.play} playing={player.playing} onPause={player.pause} scenarioId={scenarioId} live={Boolean(live)} />}
+        {stage === 5 && <SettlementReceipt v={v} fixtureMode={v.fixtureMode} onReset={player.reset} />}
+      </div>}
+      {surface === "operations" && <MerchantOperations v={v} onOpenAgent={() => navigateSurface("agent")} />}
+      <CartDrawer open={cartOpen} placed={orderPlaced} onClose={() => setCartOpen(false)} onCheckout={() => setOrderPlaced(true)} />
     </div>
   );
 }
