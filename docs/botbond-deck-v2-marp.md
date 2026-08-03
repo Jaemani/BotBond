@@ -39,6 +39,12 @@ style: |
   .screen.explorer { height: 470px; object-position: center top; }
   .screen-caption { margin: 8px 0 0; color: #637069; font-size: 16px; }
   .footnote { color: #637069; font-size: 14px; line-height: 1.35; }
+  .demo { padding: 32px 64px; }
+  .demo h1 { font-size: 38px; margin-bottom: 12px; }
+  .demo .grid2 { gap: 16px; }
+  .demo .card { padding: 15px 18px; }
+  .demo .card h3 { font-size: 20px; margin: 0 0 7px; }
+  .demo .card p { font-size: 16px; line-height: 1.32; margin: 0; }
 ---
 
 <!-- _class: hero -->
@@ -101,7 +107,9 @@ WAF는 비협조적 트래픽을 계속 막고, 반복 고객은 API key를 쓴�
 
 <p><strong>처음에는 커머스·B2B 조달·MCP 데이터 API</strong>에 집중한다. 이후 여행 좌석, 물류 상태, 시장 데이터, 운영 API까지 같은 접근권 모델로 넓힌다.</p>
 
-<p class="muted">블로그 본문이나 학습 크롤링은 첫 시장이 아니다. 실시간 데이터와 희소 자원처럼 요청 하나가 매출·비용·결정에 연결되는 곳부터 시작한다.</p>
+<p class="muted">시장 신호도 있다. TollBit은 약 7,000개 퍼블리셔 사이트의 AI 접근 수익화를 지원하고, RSL 1.0은 1,500개 이상 조직의 지지를 받는다. 다만 BotBond의 첫 고객은 퍼블리셔가 아니라, 요청 하나가 매출·비용·결정으로 이어지는 실시간 API 공급자다.</p>
+
+<span class="footnote">Sources: TollBit CEO/Series A disclosures · RSL 1.0 announcement. 위 수치는 시장 검증 신호이며 BotBond의 TAM 추정치가 아닙니다.</span>
 
 ---
 
@@ -271,18 +279,19 @@ GET /v1/access/:sessionId/products</pre><p>정책 hash로 devnet bond를 연 뒤
 
 ---
 
+<!-- _class: demo -->
+
 <span class="kicker">13 · 3-MINUTE DEMO</span>
 
-# 3분 영상에서 제품 흐름을 보여 준다
+# 3분 안에 정상 접근, 보호, 정산을 차례로 확인한다
 
 <div class="grid2">
-<div class="card"><h3>1. 사람의 쇼핑</h3><p><code>/shop</code>에서 일반 고객은 기존처럼 상품을 보고 구매한다. BotBond는 이 경로를 바꾸지 않는다.</p></div>
-<div class="card"><h3>2. 에이전트의 첫 요청</h3><p><code>/agent</code>에서 미등록 에이전트가 일반 API를 요청해 <code>403</code>을 받고, discovery 문서에서 공식 에이전트 경로를 찾는다.</p></div>
-<div class="card"><h3>3. 제한된 세션</h3><p>에이전트가 작업을 설명하면 policy·담보 조건이 나온다. browser flow는 새 Solana devnet bond와 scoped <code>200</code>, private <code>403</code>을 보여 준다.</p></div>
-<div class="card"><h3>4. 정산과 외부 에이전트</h3><p>정상 종료는 반환, 예약 방치는 제한 정산으로 끝난다. 별도 terminal에서는 own-wallet 에이전트가 pay.sh sandbox의 <code>402 → payment → 200</code>을 실행한다.</p></div>
+<div class="card"><h3>0:00–0:40 · 상점과 입구</h3><p><strong>Shop</strong>에서 마지막 한 대의 재고를 확인한다. 이어 <strong>Agent Console</strong>에서 미등록 에이전트의 direct request가 Gateway에도 닿지 않았음을 본다. <strong>Integrate</strong>는 discovery <code>200</code>, direct <code>403</code>, pay.sh gate <code>402</code>를 나란히 보여 준다.</p></div>
+<div class="card"><h3>0:40–1:45 · 정상 세션</h3><p><strong>Complete purchase</strong>를 실행한다. Gemini가 작업 설명을 최소 권한 policy로 만들고, 조건 확인 뒤 fresh Solana devnet bond가 열린다. 허용된 요청은 origin에 도달하고 bond는 전액 반환된다. 새 signature와 Explorer를 바로 연다.</p></div>
+<div class="card"><h3>1:45–2:20 · 보호와 제한 정산</h3><p><strong>Request private data</strong>는 Gateway에서 멈추고 origin은 회색으로 남는다. 차단에는 차감이 없다. 이어 <strong>Abandon last-unit hold</strong>는 TTL 뒤 사전 합의한 0.25만 정산하고 나머지 bond를 돌려준다. Merchant Ops에서 영수증을 확인한다.</p></div>
+<div class="card"><h3>2:20–3:00 · 외부 에이전트 검증</h3><p><strong>Integrate</strong>의 own-wallet 명령을 실행한다. terminal에서 pay.sh hosted sandbox의 <code>402 → payment → scoped 200</code>과 fresh bond open·refund signature를 확인한다. browser bridge와 같은 실행 경로로 편집하지 않는다.</p></div>
 </div>
 
-영상의 browser flow와 own-wallet pay.sh flow는 서로 다른 실행 경로로 표시한다. 하나의 세션처럼 편집하지 않는다.
 
 ---
 

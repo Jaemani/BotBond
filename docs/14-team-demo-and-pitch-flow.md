@@ -352,12 +352,15 @@ AI는 penalty를 판정하거나 자금을 이동할 권한이 없다.
 
 | 시간 | 보여줄 내용 | 핵심 설명 |
 |---|---|---|
-| 0:00-0:20 | `/agent` direct request | live `403`, official discovery link |
-| 0:20-0:40 | `/integrate` connection check | live discovery `200`, direct `403`, pay.sh gate `402` |
-| 0:40-1:20 | sponsored browser session | Gemini policy, new Solana devnet bond-open signature |
-| 1:20-1:50 | allowed and private request | scoped `200`, `/seller-contacts` `403`, origin boundary |
-| 1:50-2:20 | close or TTL expiry | new refund or bounded-settlement signature and receipt |
-| 2:20-3:00 | own-wallet terminal session | pay.sh sandbox `402 → payment → scoped 200`, Explorer links |
+| 0:00-0:08 | `/shop` Customer Shop | 마지막 한 대 재고. 사람의 쇼핑 경로는 그대로 둔다. |
+| 0:08-0:20 | `/agent` 최초 상태 | request path의 edge policy `Direct request not sent`, Gateway `Not reached`를 보여 준다. |
+| 0:20-0:40 | `/integrate` connection check | discovery `200`, direct `403`, pay.sh gate `402`. `402`는 browser 결제창이 아니라 payment challenge다. |
+| 0:40-1:15 | **Complete purchase** sponsored browser session | Gemini policy, policy hash, 최소 권한 scope를 확인한다. |
+| 1:15-1:30 | bond open | 새 Solana devnet bond-open signature와 Explorer link를 연다. |
+| 1:30-1:45 | 정상 결과 | scoped `200`, origin 도달, 전액 refund receipt를 확인한다. |
+| 1:45-1:55 | **Request private data** | Gateway에서 멈추고 BShop Origin API가 `Not reached`로 남는다. penalty는 없다. |
+| 1:55-2:20 | **Abandon last-unit hold** → `/merchant` | TTL 뒤 `0.25` bounded settlement, 나머지 refund, Merchant Ops 영수증과 Explorer를 확인한다. |
+| 2:20-3:00 | own-wallet terminal session | pay.sh sandbox `402 → payment → scoped 200`, fresh bond open/refund Explorer links. browser와 별도 rail로 표시한다. |
 
 `402`은 payment challenge이고 browser payment가 아니다. 실제 60초 TTL을 기다리는 take는 짧은 아키텍처 설명을 덧붙인다. fixture clock을 쓰면 화면 전체를 `DEMO SIMULATION`으로 표시하고, 실제 온체인 증거로 제출하지 않는다.
 

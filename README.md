@@ -101,13 +101,15 @@ Do not edit different runs to look like one payment rail. The video has two expl
 
 | Time | Screen / command | Evidence to capture | What to say |
 |---:|---|---|---|
-| 0:00–0:15 | `/shop` then `/agent` | BShop is a normal customer storefront; agent path is separate | “BotBond is a merchant-installed agent lane, not a CAPTCHA bypass.” |
-| 0:15–0:35 | `/agent` → **Send** direct request | real Gateway `403 UNKNOWN_AUTOMATED_CLIENT` and discovery link | “Unknown automation stops before origin, but the merchant publishes an official route.” |
-| 0:35–0:55 | `/integrate` → **Run connection check** | discovery `200`, direct `403`, hosted pay.sh gate `402` plus trace IDs | “These are three live HTTP outcomes. `402` is a challenge, not a browser payment.” |
-| 0:55–1:35 | `/agent` → choose a behavior → **Run fresh Solana devnet session** | new policy/session, live events, a fresh Explorer bond-open link | “Gemini proposes scope; the Gateway enforces deterministic rules; this browser run has a live devnet bond.” |
-| 1:35–2:05 | same run | allowed scoped `200`; private endpoint `403`; origin boundary | “A scope denial reveals no data and has penalty zero.” |
-| 2:05–2:25 | complete or abandon selected behavior | refund or bounded settlement Explorer link and receipt | “Only objective bonded actions settle. The token is devnet test token, not USDC.” |
-| 2:25–3:00 | terminal, own wallet | `npm run example:external-agent -- ...`, showing pay.sh sandbox `402 → payment → 200` and the two Explorer links | “This separate own-wallet CLI run is the actual pay.sh sandbox payment proof. It is not presented as the browser run.” |
+| 0:00–0:08 | `/shop` | 마지막 한 대가 남은 Customer Shop | “사람이 사는 화면입니다. BotBond는 이 경로를 바꾸지 않습니다.” |
+| 0:08–0:20 | `/agent` | 회색 Request path: edge policy `Direct request not sent`, Gateway `Not reached` | “계정과 API key가 없는 외부 에이전트는 여기서 시작합니다. 직접 요청은 Gateway에도 닿지 않습니다.” |
+| 0:20–0:40 | `/integrate` → **Run connection check** | discovery `200`, direct `403`, hosted pay.sh gate `402` plus trace IDs | “공식 통로는 열려 있고, 직접 접근은 막혀 있고, 유료 경로는 지불을 요구합니다. `402`는 결제창이 아니라 challenge입니다.” |
+| 0:40–1:15 | `/agent` → **Complete purchase** → **Run fresh Solana devnet session** | Gemini intent compiler, 새 policy hash, 허용 scope | “Gemini가 작업 설명을 판매자 catalog 안의 최소 권한 계약으로 바꿉니다. Gateway는 그 계약을 코드로 집행합니다.” |
+| 1:15–1:30 | same run | 새 bond-open signature와 Explorer link | “조건을 확인한 뒤에야 보증금이 체인에 잠깁니다.” |
+| 1:30–1:45 | same run | green Request path, scoped `200`, bond refund receipt | “계약 안의 요청만 origin에 도달하고, 정상 종료한 bond는 전액 돌아옵니다.” |
+| 1:45–1:55 | `/agent` → **Request private data** | Gateway에서 멈춘 request path, BShop Origin API `Not reached` | “계약 밖 요청은 보호된 API에 닿지도 못합니다. 차단은 차감이 아닙니다.” |
+| 1:55–2:20 | `/agent` → **Abandon last-unit hold**, then `/merchant` | TTL 뒤 0.25 bounded settlement, refund, Merchant Ops receipt/Explorer link | “정산은 모델의 판단이 아니라 서명된 조건에서만 일어납니다. 전액 몰수가 아니라 합의한 상한만 움직입니다.” |
+| 2:20–3:00 | terminal, own wallet | `npm run example:external-agent -- ...`, pay.sh sandbox `402 → payment → 200`, fresh bond open/refund Explorer links | “이 별도 own-wallet CLI 실행이 실제 pay.sh sandbox 결제 증거입니다. browser run과 같은 rail로 편집하지 않습니다.” |
 
 For a bounded-settlement take, choose **Abandon last-unit hold** before the sponsored run. It intentionally waits for the configured TTL. For a shorter normal take, choose **Complete purchase**. Save the generated session ID, policy hash, receipt hash, bond-open signature and settlement/refund signature with the video; use the same identifiers in the submitted evidence.
 
