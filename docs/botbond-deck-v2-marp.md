@@ -36,6 +36,7 @@ style: |
   .truth-demo { color: #9f3030; font-weight: 800; }
   .screen { width: 100%; height: 405px; object-fit: cover; object-position: center 58%; border: 1px solid #dbe2dc; border-radius: 14px; background: white; }
   .screen.tall { height: 470px; object-position: center 47%; }
+  .screen.explorer { height: 470px; object-position: center top; }
   .screen-caption { margin: 8px 0 0; color: #637069; font-size: 16px; }
 ---
 
@@ -227,14 +228,49 @@ Own-wallet Agent CLI ── pay.sh x402 sandbox ──┘    ├─ Vertex AI Ge
 <div><img class="screen" src="../docs/audit/final-product/09-live-integration-check.png" /><p class="screen-caption">공개 connection check: discovery <code>200</code> · 직접 요청 <code>403</code> · pay.sh gate <code>402</code></p></div>
 <div>
 <h3>Browser sponsored run</h3><p>Gemini, Gateway, Firestore와 Solana devnet bond를 실제로 실행합니다. 사용량 credential은 HMAC demo bridge이며 pay.sh verifier가 아닙니다.</p>
-<h3>Own-wallet agent CLI</h3><p>자기 Solana 지갑으로 pay.sh hosted sandbox의 <code>402 → payment → scoped 200</code>을 수행하고, devnet bond open·정산 Explorer 링크를 출력합니다.</p>
+<h3>Own-wallet agent CLI</h3><p>자기 Solana 지갑으로 pay.sh hosted sandbox의 <code>402 → payment → scoped 200</code>을 수행합니다. 성공하면 상품 응답과 bond open·정산 Explorer 링크가 출력됩니다.</p>
 <p class="muted">한 화면에서 서로 다른 rail을 하나의 결제로 보이게 하지 않습니다.</p>
 </div>
 </div>
 
 ---
 
-<span class="kicker">11 · 3-MINUTE DEMO</span>
+<span class="kicker">11 · DEVELOPER FLOW</span>
+
+# 개발자는 discovery에서 세션 발급과 호출을 시작합니다
+
+<div class="grid3">
+<div class="card"><h3>1. 공개 정보 조회</h3><pre>GET /.well-known/agent-access</pre><p>intent·session endpoint, payment rail, Solana program ID와 지원 범위를 받습니다.</p></div>
+<div class="card"><h3>2. 작업과 지갑 제출</h3><pre>POST /v1/intents
+{ task, wallet, budget }</pre><p>Gemini가 공급자 catalog 안에서 policy와 policy hash를 만듭니다. 에이전트는 담보를 열기 전에 조건을 검토합니다.</p></div>
+<div class="card"><h3>3. 세션으로 호출</h3><pre>x-botbond-session-token: &lt;token&gt;
+GET /v1/access/:sessionId/products</pre><p>정책 hash로 devnet bond를 연 뒤 세션을 발급받습니다. 허용된 endpoint만 호출할 수 있습니다.</p></div>
+</div>
+
+<p><strong>가장 쉬운 실행 방법</strong>은 <code>/integrate</code>의 own-wallet command입니다. 이 명령은 discovery부터 pay.sh sandbox 호출, bond open·close, Explorer URL 출력까지 실행합니다.</p>
+
+---
+
+<span class="kicker">12 · ON-CHAIN RECEIPT</span>
+
+# 정산 결과는 Solana Explorer에서 누구나 확인합니다
+
+<div class="grid2">
+<div><img class="screen explorer" src="../docs/audit/final-product/12-solana-explorer-bond-open.png" /><p class="screen-caption">현재 program <code>EG9r…KaRKR</code>에서 만든 devnet bond-open transaction</p></div>
+<div>
+<h3>확인 순서</h3>
+<p>1. BotBond 영수증의 <strong>Bond locked</strong> 또는 <strong>Bond returned</strong> Explorer 링크를 엽니다.</p>
+<p>2. Explorer 상단에서 <strong>Success / Finalized</strong> 상태와 transaction signature를 확인합니다.</p>
+<p>3. Accounts &amp; SOL Balance에서 계정 변화를, Programs &amp; Logs에서 BotBond program 실행 기록을 봅니다.</p>
+<h3>이 화면이 보여 주는 것</h3>
+<p>담보 잠금·반환·제한 정산은 운영자 대시보드의 숫자만이 아니라 공개 devnet transaction으로 검증됩니다.</p>
+<p class="muted">이 캡처는 devnet test mint 기준입니다. pay.sh 반복 세션 검증이나 실제 USDC 거래를 뜻하지 않습니다.</p>
+</div>
+</div>
+
+---
+
+<span class="kicker">13 · 3-MINUTE DEMO</span>
 
 # 3분 영상에서 제품 흐름을 보여줍니다
 
@@ -249,7 +285,7 @@ Own-wallet Agent CLI ── pay.sh x402 sandbox ──┘    ├─ Vertex AI Ge
 
 ---
 
-<span class="kicker">12 · REPRODUCIBLE SUBMISSION</span>
+<span class="kicker">14 · REPRODUCIBLE SUBMISSION</span>
 
 # 심사위원이 직접 확인할 수 있습니다
 
