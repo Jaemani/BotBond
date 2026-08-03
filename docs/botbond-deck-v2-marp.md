@@ -34,6 +34,9 @@ style: |
   .truth-live { color: #08795b; font-weight: 800; }
   .truth-sandbox { color: #a15c00; font-weight: 800; }
   .truth-demo { color: #9f3030; font-weight: 800; }
+  .screen { width: 100%; height: 405px; object-fit: cover; object-position: center 58%; border: 1px solid #dbe2dc; border-radius: 14px; background: white; }
+  .screen.tall { height: 470px; object-position: center 47%; }
+  .screen-caption { margin: 8px 0 0; color: #637069; font-size: 16px; }
 ---
 
 <!-- _class: hero -->
@@ -121,7 +124,23 @@ WAF를 건너뛰면 공급자는 기존 보안 정책과 접근 통제권을 잃
 
 ---
 
-<span class="kicker">05 · INTENT COMPILER</span>
+<span class="kicker">05 · LIVE GATEWAY</span>
+
+# 실제 요청도 일반 경로에서 멈춥니다
+
+<div class="grid2">
+<div>
+<h3>미등록 agent의 직접 요청</h3>
+<p>배포된 BShop Gateway는 <code>GET /products</code>를 <code>403</code>으로 돌려보냅니다. Origin API에는 요청이 전달되지 않습니다.</p>
+<p>응답에는 우회 방법 대신 공식 discovery 경로 <code>/.well-known/agent-access</code>가 들어 있습니다. 에이전트는 이 경로에서 조건을 확인한 뒤에만 다음 단계로 갑니다.</p>
+<p class="muted">이 캡처는 live Gateway 요청입니다. BShop의 edge policy를 보여 주며, 실제 Cloudflare zone 로그라고 주장하지 않습니다.</p>
+</div>
+<div><img class="screen" src="../docs/audit/final-product/08-live-direct-403.png" /><p class="screen-caption">직접 요청 <code>403</code> · discovery 경로 반환 · origin 미도달</p></div>
+</div>
+
+---
+
+<span class="kicker">06 · INTENT COMPILER</span>
 
 # 에이전트는 API 구조 대신 할 일을 설명합니다
 
@@ -145,9 +164,12 @@ Gemini는 정책 초안을 만들고, Gateway가 endpoint·field·rate·TTL을 �
 
 ---
 
-<span class="kicker">06 · REQUEST OUTCOMES</span>
+<span class="kicker">07 · REQUEST OUTCOMES</span>
 
 # 세션 안에서는 약속한 범위만 실행됩니다
+
+<div class="grid2">
+<div>
 
 | 시도 | 결과 | Origin 도달 | 담보 변화 |
 |---|---|---:|---:|
@@ -158,10 +180,13 @@ Gemini는 정책 초안을 만들고, Gateway가 endpoint·field·rate·TTL을 �
 | 예약 후 TTL 방치 | Objective expiry | 예약만 도달 | 0.25 제한 정산 |
 
 **차단은 몰수가 아닙니다.** 실제 비용을 만든 bonded action의 객관적 위반만 사전에 서명한 상한 안에서 정산합니다.
+</div>
+<div><img class="screen tall" src="../docs/audit/final-product/05-live-scope-denied-receipt.png" /><p class="screen-caption">범위 밖 private request는 Gateway에서 차단되고, bond는 전액 반환됩니다.</p></div>
+</div>
 
 ---
 
-<span class="kicker">07 · ARCHITECTURE</span>
+<span class="kicker">08 · ARCHITECTURE</span>
 
 # 요청부터 정산까지 역할을 나눴습니다
 
@@ -177,7 +202,7 @@ Own-wallet Agent CLI ── pay.sh x402 sandbox ──┘    ├─ Vertex AI Ge
 
 ---
 
-<span class="kicker">08 · IMPLEMENTATION TRUTH</span>
+<span class="kicker">09 · IMPLEMENTATION TRUTH</span>
 
 # 지금 동작하는 범위와 데모 경계
 
@@ -194,7 +219,22 @@ Own-wallet Agent CLI ── pay.sh x402 sandbox ──┘    ├─ Vertex AI Ge
 
 ---
 
-<span class="kicker">09 · 3-MINUTE DEMO</span>
+<span class="kicker">10 · PAYMENT RAIL</span>
+
+# 브라우저와 외부 에이전트의 결제 경로를 구분합니다
+
+<div class="grid2">
+<div><img class="screen" src="../docs/audit/final-product/09-live-integration-check.png" /><p class="screen-caption">공개 connection check: discovery <code>200</code> · 직접 요청 <code>403</code> · pay.sh gate <code>402</code></p></div>
+<div>
+<h3>Browser sponsored run</h3><p>Gemini, Gateway, Firestore와 Solana devnet bond를 실제로 실행합니다. 사용량 credential은 HMAC demo bridge이며 pay.sh verifier가 아닙니다.</p>
+<h3>Own-wallet agent CLI</h3><p>자기 Solana 지갑으로 pay.sh hosted sandbox의 <code>402 → payment → scoped 200</code>을 수행하고, devnet bond open·정산 Explorer 링크를 출력합니다.</p>
+<p class="muted">한 화면에서 서로 다른 rail을 하나의 결제로 보이게 하지 않습니다.</p>
+</div>
+</div>
+
+---
+
+<span class="kicker">11 · 3-MINUTE DEMO</span>
 
 # 3분 영상에서 제품 흐름을 보여줍니다
 
@@ -209,7 +249,7 @@ Own-wallet Agent CLI ── pay.sh x402 sandbox ──┘    ├─ Vertex AI Ge
 
 ---
 
-<span class="kicker">10 · REPRODUCIBLE SUBMISSION</span>
+<span class="kicker">12 · REPRODUCIBLE SUBMISSION</span>
 
 # 심사위원이 직접 확인할 수 있습니다
 
