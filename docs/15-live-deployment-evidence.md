@@ -1,6 +1,6 @@
 # Live Deployment and On-chain Evidence
 
-Last verified: 2026-08-03 21:54 KST
+Last verified: 2026-08-03 22:24 KST
 
 This page records fresh public runs against the deployed services. Private scoped tokens and wallet material are intentionally omitted.
 
@@ -20,7 +20,7 @@ Current revisions:
 - Intent: `botbond-intent-agent-00004-jwj`
 - pay.sh Gate: `botbond-pay-gate-00003-zsl`
 - Cloud Run Web: `botbond-web-00005-lsb`
-- Vercel: `dpl_FMkWkymU9cJpFgaPXbuL5a3DYdBt`
+- Vercel: `dpl_7uK145APH9QhCBmXUfTqmZXpNZBY`
 
 ## Evidence validity after reproducible program deployment
 
@@ -62,6 +62,8 @@ The receipt's usage-payment record is explicitly a `FAKE_ADAPTER_FIXTURE`; this 
 | pay-gate `GET /v1/access/browser-check/products` | `402` | hosted pay.sh sandbox issued an x402 challenge |
 
 The check is deliberately non-paying: it makes the payment boundary visible before the user chooses the own-wallet CLI path. Captured current state: [`09-live-integration-check.png`](audit/final-product/09-live-integration-check.png).
+
+The root route now starts with BotBond's mechanism and treats BShop as the merchant integration, rather than making the storefront the product entry: [`11-botbond-overview.png`](audit/final-product/11-botbond-overview.png).
 
 ## Fresh current-program scope denial
 

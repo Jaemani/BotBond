@@ -35,6 +35,7 @@ The public Web app has four independent product routes:
 
 | Route | Who uses it | What is actually testable |
 |---|---|---|
+| [`/`](https://botbond-bshop.vercel.app/) | reviewer | BotBond product definition, mechanism and entry points |
 | [`/shop`](https://botbond-bshop.vercel.app/shop) | customer | normal storefront and human checkout path |
 | [`/agent`](https://botbond-bshop.vercel.app/agent) | unknown agent | deployed direct `403`, discovery, sponsored Solana-devnet run |
 | [`/merchant`](https://botbond-bshop.vercel.app/merchant) | BShop operator | inventory, scoped requests and settlement evidence |

@@ -24,6 +24,10 @@ style: |
   .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 26px; }
   .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
   .card { background: white; border: 1px solid #dbe2dc; border-radius: 16px; padding: 20px; }
+  .routes { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .routes .card { padding: 14px 18px; }
+  .routes h3 { margin: 0 0 6px; }
+  .routes p { margin: 0; font-size: 16px; }
   .hero { background: #10271f; color: white; }
   .hero strong { color: #5ee5ad; }
   .hero .muted { color: #aebfb7; }
@@ -80,16 +84,17 @@ BotBond는 처음 보는 외부 에이전트에게도 **목적·범위·비용�
 
 <span class="kicker">03 · PRODUCT SURFACES</span>
 
-# 한 화면짜리 대시보드가 아니라, 실제 제품의 네 경로
+# BotBond가 첫 화면이고, BShop은 merchant 사례다
 
-<div class="grid2">
+<div class="routes">
+<div class="card"><h3><code>/</code> BotBond Overview</h3><p>unknown agent → scoped access → refundable bond라는 제품 메커니즘과 각 진입점</p></div>
 <div class="card"><h3><code>/shop</code> Customer Shop</h3><p>사람의 일반 쇼핑 경로. BotBond UI가 개입하지 않습니다.</p></div>
 <div class="card"><h3><code>/agent</code> External Agent</h3><p>403 → discovery → intent → policy → bond → scoped session</p></div>
 <div class="card"><h3><code>/merchant</code> Merchant Ops</h3><p>재고, 허용/차단 요청, refund/penalty, Explorer 증거</p></div>
 <div class="card"><h3><code>/integrate</code> Developer Setup</h3><p>공개 discovery와 자기 wallet으로 실행하는 agent 예제</p></div>
 </div>
 
-사용자·에이전트·운영자·개발자의 목적과 정보가 서로 섞이지 않습니다.
+제품 설명·고객·에이전트·운영자·개발자의 목적과 정보가 서로 섞이지 않습니다.
 
 ---
 

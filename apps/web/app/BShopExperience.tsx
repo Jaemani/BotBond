@@ -41,7 +41,7 @@ const SCENARIOS = [
   { id: "03-abandoned-reservation", label: "Abandon last-unit hold", detail: "TTL expiry · bounded settlement" },
 ];
 
-export type Surface = "shop" | "agent" | "developer" | "operations";
+export type Surface = "overview" | "shop" | "agent" | "developer" | "operations";
 
 type DirectRequestEvidence = {
   status: number;
@@ -100,10 +100,11 @@ function CommerceHeader({
 }) {
   return (
     <header className="commerce-header">
-      <button className="shop-brand" onClick={() => setSurface("shop")} aria-label="BShop home">
-        <span className="shop-brand-mark">B</span><span>BShop</span>
+      <button className="shop-brand" onClick={() => setSurface("overview")} aria-label="BotBond home">
+        <span className="shop-brand-mark">B</span><span>BotBond</span>
       </button>
-      <nav className="surface-nav" aria-label="BShop navigation">
+      <nav className="surface-nav" aria-label="BotBond navigation">
+        <button data-active={surface === "overview"} onClick={() => setSurface("overview")}>Overview</button>
         <button data-active={surface === "shop"} onClick={() => setSurface("shop")}>Customer Shop</button>
         <button data-active={surface === "agent"} onClick={() => setSurface("agent")}>Agent Console</button>
         <button data-active={surface === "operations"} onClick={() => setSurface("operations")}>Merchant Ops</button>
@@ -111,10 +112,33 @@ function CommerceHeader({
       </nav>
       <div className="commerce-meta">
         {live && <span className="live-connection"><Circle weight="fill" /> LIVE · {liveStatus}</span>}
-        <span className="protected-label"><ShieldCheck weight="fill" /> Agent access by BotBond</span>
+        <span className="protected-label"><ShieldCheck weight="fill" /> BShop merchant demo</span>
       </div>
     </header>
   );
+}
+
+function BotBondOverview({ onNavigate }: { onNavigate: (surface: Surface) => void }) {
+  return <main className="botbond-overview">
+    <section className="overview-hero">
+      <span className="eyebrow">BONDED AGENT ACCESS</span>
+      <h1>Safe API access for unknown AI agents.</h1>
+      <p>BotBond lets a merchant reject unknown automation by default, then issue a short-lived API session only after an agent declares its job, accepts a merchant-specific scope and locks a refundable devnet bond for costly actions.</p>
+      <div className="overview-actions"><button className="primary-action" onClick={() => onNavigate("agent")}><TerminalWindow />Try the live agent path <ArrowRight /></button><button className="secondary-action" onClick={() => onNavigate("shop")}><ShoppingBag />View the BShop merchant case</button></div>
+      <p className="overview-boundary"><ShieldCheck weight="duotone" /> The product does not bypass Cloudflare. A merchant intentionally publishes the agent route.</p>
+    </section>
+    <section className="overview-flow" aria-label="BotBond access flow">
+      <div><span>01</span><strong>Unknown request rejected</strong><p>Direct automated API traffic receives a real Gateway `403` before origin.</p></div>
+      <ArrowRight />
+      <div><span>02</span><strong>Intent becomes scope</strong><p>Gemini proposes the smallest BShop policy; the Gateway validates and enforces it.</p></div>
+      <ArrowRight />
+      <div><span>03</span><strong>Bonded action settles by rule</strong><p>A real Solana devnet bond is refunded on completion or settled only for objective TTL expiry.</p></div>
+    </section>
+    <section className="merchant-case">
+      <div><span className="eyebrow">MERCHANT CASE · BSHOP</span><h2>One merchant, four separated experiences.</h2><p>BShop is not the product. It is a realistic merchant integration that makes the same access rule visible to customers, agents, operators and developers.</p></div>
+      <div className="merchant-case-links"><button onClick={() => onNavigate("shop")}><User />Customer storefront <ArrowRight /></button><button onClick={() => onNavigate("agent")}><TerminalWindow />Agent console <ArrowRight /></button><button onClick={() => onNavigate("operations")}><ShieldCheck />Merchant protection <ArrowRight /></button><button onClick={() => onNavigate("developer")}><Code />Integration check <ArrowRight /></button></div>
+    </section>
+  </main>;
 }
 
 function StoreNav() {
@@ -152,7 +176,7 @@ function ProductDetail({ stock, onAddToCart, onAgentAccess }: { stock: number; o
           <div className="specs">13.6″ Liquid Retina · M3 Chip · 16GB RAM · 512GB SSD</div>
           <div className={stock === 0 ? "last-unit sold-out" : "last-unit"}><WarningCircle weight="duotone" /><div><strong>{stock === 0 ? "Temporarily held" : `Last unit · ${stock} available`}</strong><span>{stock === 0 ? "An agent reservation currently holds this item." : "Order now to secure the final unit."}</span></div></div>
           <div className="buy-row"><label>Quantity<select defaultValue="1" disabled={stock === 0}><option>1</option></select></label><button onClick={onAddToCart} disabled={stock === 0}>{stock === 0 ? "Unavailable" : "Add to cart"}</button></div>
-          <p className="checkout-note"><ShieldCheck weight="duotone" /> Automated buyers can use our <button onClick={onAgentAccess}>official Agent API</button></p>
+          <button className="agent-lane-cta" onClick={onAgentAccess}><ShieldCheck weight="duotone" /><span><strong>Buying with an AI agent?</strong><small>Use BShop’s official scoped Agent API instead of the customer checkout.</small></span><ArrowRight /></button>
         </div>
       </div>
       <div className="benefits">
@@ -401,7 +425,7 @@ function MerchantOperations({ v, onOpenAgent }: { v: ViewState; onOpenAgent: () 
   const stock = v.reservation?.status === "HELD" ? 0 : 1;
   const latest = v.trace.slice(-6).reverse();
   return <main className="operations-surface"><div className="role-ribbon merchant"><ShieldCheck weight="fill" /> MERCHANT OPERATIONS <span>Operator-only view</span></div>
-    <div className="ops-heading"><div><span className="eyebrow">BSHOP MERCHANT OPS</span><h1>Agent commerce activity</h1><p>Inventory and access decisions from the same storefront and Gateway.</p></div><button className="secondary-action" onClick={onOpenAgent}>Open Agent Console <ArrowRight /></button></div>
+    <div className="ops-heading"><div><span className="eyebrow">BSHOP MERCHANT OPS · POWERED BY BOTBOND</span><h1>Keep the API closed. Keep the right agent lane open.</h1><p>Unknown automation stops before origin; declared, bounded sessions can use only the operations BShop approves.</p></div><button className="secondary-action" onClick={onOpenAgent}>Open Agent Console <ArrowRight /></button></div>
     <section className="ops-kpis"><div><span>NovaBook Air inventory</span><strong>{stock}</strong><small>{stock === 0 ? "Held by an agent" : "Available for checkout"}</small></div><div><span>Session state</span><strong>{v.sessionState}</strong><small>{v.callCount} allowed · {v.deniedCount} denied</small></div><div><span>Bond state</span><strong>{v.bondPhase}</strong><small>{usdc(v.penaltyAtomic)} devnet demo token settled</small></div></section>
     <div className="ops-grid"><section className="access-outcomes"><div className="section-head"><div><ShieldCheck /><strong>How BShop handles automation</strong></div></div>
       <div className="outcome-row"><span className="outcome-icon success"><Check /></span><div><strong>Scoped request</strong><small>Price, stock and reservation calls reach the commerce API.</small></div><b>200</b></div>
@@ -413,7 +437,7 @@ function MerchantOperations({ v, onOpenAgent }: { v: ViewState; onOpenAgent: () 
   </main>;
 }
 
-export function BShopExperience({ initialSurface = "shop" }: { initialSurface?: Surface }) {
+export function BShopExperience({ initialSurface = "overview" }: { initialSurface?: Surface }) {
   const [scenarioId, setScenarioId] = useState(SCENARIOS[0].id);
   const [fixture, setFixture] = useState<Fixture | null>(null);
   const [live, setLive] = useState<LiveEventStream | null>(null);
@@ -441,7 +465,7 @@ export function BShopExperience({ initialSurface = "shop" }: { initialSurface?: 
     setLive(stream);
     const requestedSurface = params.get("surface");
     if (stream) setSurface("agent");
-    else if (requestedSurface === "agent" || requestedSurface === "developer" || requestedSurface === "operations" || requestedSurface === "shop") setSurface(requestedSurface);
+    else if (requestedSurface === "overview" || requestedSurface === "agent" || requestedSurface === "developer" || requestedSurface === "operations" || requestedSurface === "shop") setSurface(requestedSurface);
   }, []);
 
   useEffect(() => {
@@ -513,7 +537,7 @@ export function BShopExperience({ initialSurface = "shop" }: { initialSurface?: 
   };
   const navigateSurface = (next: Surface) => {
     setSurface(next);
-    const paths: Record<Surface, string> = { shop: "/shop", agent: "/agent", operations: "/merchant", developer: "/integrate" };
+    const paths: Record<Surface, string> = { overview: "/", shop: "/shop", agent: "/agent", operations: "/merchant", developer: "/integrate" };
     const url = new URL(paths[next], window.location.origin);
     window.history.replaceState({}, "", url);
   };
@@ -522,6 +546,7 @@ export function BShopExperience({ initialSurface = "shop" }: { initialSurface?: 
     <div className="app-shell">
       <CommerceHeader surface={surface} setSurface={navigateSurface} live={Boolean(live)} liveStatus={player.liveStatus} />
       {loadError && <div className="load-error">Could not load demo evidence: {loadError}</div>}
+      {surface === "overview" && <BotBondOverview onNavigate={navigateSurface} />}
       {surface === "shop" && <Storefront stock={stock} onAddToCart={() => { setOrderPlaced(false); setCartOpen(true); }} onAgentAccess={() => navigateSurface("agent")} />}
       {surface === "agent" && <div className="agent-surface"><div className="role-ribbon agent"><TerminalWindow weight="fill" /> EXTERNAL AGENT CONSOLE <span>Machine client path</span></div><AgentRunSelector scenarioId={scenarioId} onChange={changeScenario} disabled={Boolean(live) || player.playing || Boolean(publicRunProgress)} onRunLive={runLive} progress={publicRunProgress} error={publicRunError} /><ExecutionTruth live={Boolean(live)} /><RequestBoundary v={v} stage={stage} live={Boolean(live)} directAttempted={Boolean(directEvidence)} />
         {stage === 1 && <AccessDenied onOpenLive={runLive} directEvidence={directEvidence} directRequesting={directRequesting} onDirectRequest={runDirectRequest} live={Boolean(live)} />}
