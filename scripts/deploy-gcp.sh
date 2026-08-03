@@ -63,7 +63,8 @@ rtk gcloud run deploy botbond-gateway \
   --region "$REGION" \
   --service-account "$GATEWAY_SERVICE_ACCOUNT" \
   --allow-unauthenticated \
-  --set-env-vars "ADAPTER_MODE=solana,REPOSITORY_MODE=firestore,FIRESTORE_NAMESPACE=botbond,GOOGLE_CLOUD_PROJECT=${PROJECT_ID},INTENT_COMPILER_URL=${INTENT_URL},ANCHOR_PROVIDER_URL=https://api.devnet.solana.com,ANCHOR_WALLET=/secrets/botbond-devnet.json,SOLANA_CLUSTER=devnet,BOTBOND_PROGRAM_ID=HoamYxgGuZoQerLGthZK8K4vLKTvEraZ4o7N8fkjk4bc,SETTLEMENT_AUTHORITY=GMrS1AR2MmHvW9cDmQJ4RApQz6iTS17srfb8bwucJQa6" \
+  --timeout 300 \
+  --set-env-vars "ADAPTER_MODE=solana,REPOSITORY_MODE=firestore,FIRESTORE_NAMESPACE=botbond,GOOGLE_CLOUD_PROJECT=${PROJECT_ID},INTENT_COMPILER_URL=${INTENT_URL},ANCHOR_PROVIDER_URL=https://api.devnet.solana.com,ANCHOR_WALLET=/secrets/botbond-devnet.json,SOLANA_CLUSTER=devnet,BOTBOND_PROGRAM_ID=HoamYxgGuZoQerLGthZK8K4vLKTvEraZ4o7N8fkjk4bc,SETTLEMENT_AUTHORITY=GMrS1AR2MmHvW9cDmQJ4RApQz6iTS17srfb8bwucJQa6,PUBLIC_DEMO_ENABLED=true,PUBLIC_DEMO_MINT=6iPkutkbMLoMc4bTqUxB8m1d2dtS5RQR2o5ZikW7sVPw,PUBLIC_DEMO_MERCHANT=zdHstotkcGBUSD6BA8QR4osRTMQ7UnzHa3HpvjZYfts,PUBLIC_DEMO_DAILY_LIMIT=30,PUBLIC_DEMO_COOLDOWN_MS=600000,PUBLIC_DEMO_LEASE_MS=120000" \
   --set-secrets "/secrets/botbond-devnet.json=botbond-devnet-wallet:latest,BOTBOND_EVIDENCE_SECRET=botbond-evidence-secret:latest,BOTBOND_PAYMENT_SECRET=botbond-payment-secret:latest"
 GATEWAY_URL="$(rtk gcloud run services describe botbond-gateway --region "$REGION" --format='value(status.url)')"
 

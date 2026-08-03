@@ -31,6 +31,12 @@ import { eventsAfterLastId, SessionEventHub, serializeSse } from "./event-stream
 import { claimSettlementEvidenceNonce, closeAttemptId, expiryAttemptId, getOrCreateSettlementAttempt, updateSettlementAttempt } from "./settlement-attempt.js";
 import { createSettlementEvidence } from "./settlement-evidence.js";
 import { pollSettlement, type SettlementPollingOptions } from "./settlement-polling.js";
+import {
+  PUBLIC_DEMO_BEHAVIORS,
+  publicDemoFingerprint,
+  publicDemoRunnerFromEnvironment,
+  type PublicDemoRunner,
+} from "./public-demo-runner.js";
 
 const DEFAULT_SETTLEMENT_LEASE_MS = 30_000;
 const DEFAULT_BOTBOND_PROGRAM_ID = "HoamYxgGuZoQerLGthZK8K4vLKTvEraZ4o7N8fkjk4bc";
@@ -49,6 +55,7 @@ interface BuildOptions {
   settlementAuthority?: string;
   tokenTtlMs?: number;
   settlementPolling?: SettlementPollingOptions;
+  publicDemoRunner?: PublicDemoRunner | null;
 }
 interface IntentBody {
   task: string;
@@ -158,6 +165,9 @@ export async function buildApp(options: BuildOptions = {}): Promise<FastifyInsta
   const settlementSigningSecret = options.settlementSigningSecret ?? process.env.BOTBOND_EVIDENCE_SECRET ?? "fake-local-settlement-secret";
   const settlementAuthority = options.settlementAuthority ?? process.env.SETTLEMENT_AUTHORITY ?? "botbond-gateway-local";
   const app = Fastify({ logger: false });
+  const publicDemoRunner = options.publicDemoRunner === undefined
+    ? publicDemoRunnerFromEnvironment()
+    : options.publicDemoRunner ?? undefined;
   app.addSchema(intentRequestSchema);
   app.addSchema(paymentChallengeRequestSchema);
   app.addSchema(sessionRequestSchema);
@@ -222,8 +232,26 @@ export async function buildApp(options: BuildOptions = {}): Promise<FastifyInsta
       bearer: "Authorization: Bearer <session-token>",
       paymentMiddlewareCompatible: "x-botbond-session-token: <session-token>",
     },
-    payment: { provider: "pay.sh", mode: "LOCAL_HMAC_CREDENTIAL_BRIDGE", railEvidence: "SANDBOX_VERIFIED", integration: "FAKE_ADAPTER_FIXTURE" },
-    bond: { network: "solana-devnet", programId: process.env.BOTBOND_PROGRAM_ID ?? DEFAULT_BOTBOND_PROGRAM_ID, ...(fakeMode ? { integration: "FAKE_ADAPTER_FIXTURE" } : {}) },
+    payment: {
+      provider: "pay.sh",
+      mode: "LOCAL_HMAC_CREDENTIAL_BRIDGE",
+      railEvidence: "SANDBOX_VERIFIED",
+      integration: "FAKE_ADAPTER_FIXTURE",
+      ...(publicDemoRunner ? { devnetCredentialEndpoint: "/v1/devnet/payment-credentials" } : {}),
+    },
+    bond: {
+      network: "solana-devnet",
+      programId: process.env.BOTBOND_PROGRAM_ID ?? DEFAULT_BOTBOND_PROGRAM_ID,
+      ...(process.env.PUBLIC_DEMO_MERCHANT ? { publicDemoMerchant: process.env.PUBLIC_DEMO_MERCHANT } : {}),
+      ...(fakeMode ? { integration: "FAKE_ADAPTER_FIXTURE" } : {}),
+    },
+    publicDemo: publicDemoRunner ? {
+      endpoint: "/v1/public-demo-runs",
+      behaviors: PUBLIC_DEMO_BEHAVIORS,
+      sponsored: true,
+      createsFreshTransactions: true,
+    } : { enabled: false },
+    onboardingGuide: "https://github.com/Jaemani/BotBond/blob/main/docs/16-bring-your-agent.md",
   }));
   app.get("/products", async (_request, reply) => {
     reply.header("link", '</.well-known/agent-access>; rel="agent-access"');
@@ -240,6 +268,88 @@ export async function buildApp(options: BuildOptions = {}): Promise<FastifyInsta
     });
   });
   app.get("/v1/catalog", async () => catalog);
+
+  app.post<{ Body: { behavior?: string } }>("/v1/public-demo-runs", {
+    schema: {
+      body: {
+        type: "object",
+        additionalProperties: false,
+        required: ["behavior"],
+        properties: { behavior: { type: "string", enum: [...PUBLIC_DEMO_BEHAVIORS] } },
+      },
+    },
+  }, async (request, reply) => {
+    if (!publicDemoRunner) return error(reply, 503, "PUBLIC_DEMO_DISABLED", true);
+    const behavior = request.body?.behavior;
+    if (!PUBLIC_DEMO_BEHAVIORS.includes(behavior as (typeof PUBLIC_DEMO_BEHAVIORS)[number])) {
+      return error(reply, 400, "PUBLIC_DEMO_BEHAVIOR_INVALID");
+    }
+    const forwarded = String(request.headers["x-forwarded-for"] ?? request.ip).split(",")[0]?.trim() || request.ip;
+    const salt = process.env.BOTBOND_PUBLIC_DEMO_SALT ?? settlementSigningSecret;
+    try {
+      const run = await publicDemoRunner.createRun({
+        behavior: behavior as (typeof PUBLIC_DEMO_BEHAVIORS)[number],
+        clientFingerprint: publicDemoFingerprint(forwarded, salt),
+        inject: async (input) => {
+          const response = await app.inject({
+            method: input.method,
+            url: input.url,
+            payload: input.payload,
+            ...(input.headers ? { headers: input.headers } : {}),
+          });
+          return { statusCode: response.statusCode, body: response.body };
+        },
+      });
+      await emit(run.sessionId, "BOND_OPENED", String(request.headers["x-trace-id"]), {
+        status: run.openTransaction.status,
+        bondAccount: run.bondAccount,
+        transaction: run.openTransaction,
+        source: "PUBLIC_SPONSORED_RUNNER",
+      });
+      reply.header("cache-control", "no-store");
+      return run;
+    } catch (cause) {
+      const code = cause instanceof Error ? cause.message.split(":")[0] : "PUBLIC_DEMO_FAILED";
+      if (code === "PUBLIC_DEMO_COOLDOWN") return error(reply, 429, code, true);
+      if (code === "PUBLIC_DEMO_DAILY_LIMIT") return error(reply, 429, code, true);
+      if (code === "PUBLIC_DEMO_BUSY") return error(reply, 503, code, true);
+      logger.error("public_demo_failed", { cause: String(cause) });
+      return error(reply, 503, "PUBLIC_DEMO_FAILED", true);
+    }
+  });
+
+  app.post<{ Body: { intentId?: string; sessionId?: string } }>("/v1/devnet/payment-credentials", {
+    schema: {
+      body: {
+        type: "object",
+        additionalProperties: false,
+        required: ["intentId", "sessionId"],
+        properties: {
+          intentId: { type: "string", pattern: "^int_[A-Za-z0-9_-]+$" },
+          sessionId: { type: "string", pattern: "^ses_[A-Za-z0-9_-]{4,124}$" },
+        },
+      },
+    },
+  }, async (request, reply) => {
+    if (!publicDemoRunner) return error(reply, 503, "DEVNET_CREDENTIAL_ISSUER_DISABLED", true);
+    const intent = await repository.getIntent(request.body.intentId ?? "");
+    if (!intent) return error(reply, 404, "INTENT_NOT_FOUND");
+    try {
+      const credential = publicDemoRunner.issueDemoPaymentCredential({
+        sessionId: request.body.sessionId ?? "",
+        usageCapAtomic: intent.policy.constraints.usageCapAtomic,
+      });
+      reply.header("cache-control", "no-store");
+      return {
+        credential,
+        usageCapAtomic: intent.policy.constraints.usageCapAtomic,
+        mode: "HMAC_DEMO_BRIDGE",
+        warning: "Devnet onboarding only. This is not a live pay.sh payment credential.",
+      };
+    } catch (cause) {
+      return error(reply, 400, cause instanceof Error ? cause.message : "DEVNET_CREDENTIAL_FAILED");
+    }
+  });
 
   app.post<{ Body: IntentBody }>("/v1/intents", { schema: { body: { $ref: "IntentRequest#" } } }, async (request, reply) => {
     const traceId = String(request.headers["x-trace-id"]);
@@ -380,7 +490,7 @@ export async function buildApp(options: BuildOptions = {}): Promise<FastifyInsta
         status: result.status,
         bondAmountAtomic: intent.policy.constraints.bondAmountAtomic,
         maxPenaltyAtomic: intent.policy.constraints.maxPenaltyAtomic,
-        ...(result.providerReference ? { providerReference: result.providerReference } : {}),
+        ...(result.providerReference ? { bondAccount: result.providerReference } : {}),
         ...(result.fixtureMarker ? { fixtureMarker: result.fixtureMarker } : {}),
       });
       session = await repository.transitionSession(sessionId, "BONDED", "ACTIVE");

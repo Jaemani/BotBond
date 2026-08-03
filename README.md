@@ -30,7 +30,7 @@ BotBond는 사이트가 처음 보는 AI 에이전트에게도 **서명된 사�
 - Solana program: https://explorer.solana.com/address/HoamYxgGuZoQerLGthZK8K4vLKTvEraZ4o7N8fkjk4bc?cluster=devnet
 - Latest verified run: [docs/15-live-deployment-evidence.md](docs/15-live-deployment-evidence.md)
 
-The public Web app replays labelled evidence unless it is opened with a private live-session token. Secrets and scoped session tokens are never committed.
+The public Web app can now start a sponsored live devnet run. Each accepted run creates a fresh bond-open transaction and a fresh refund or bounded-settlement transaction. The runner is IP-hash cooldown, daily-budget, and single-concurrency limited. Recorded examples remain available only as clearly separated fallback evidence. Secrets and scoped session tokens are never committed.
 
 ## Reproduce locally
 
@@ -56,6 +56,14 @@ The command creates a new policy with Vertex AI, opens a new Solana devnet bond,
 
 Payment claim boundary: pay.sh x402 per-call payment is verified against its sandbox rail. The deployed Gateway currently activates sessions through an HMAC adapter marked `FAKE_ADAPTER_FIXTURE`; it must not be described as live pay.sh credential verification.
 
+External developers can run the complete flow with their own devnet wallet and no BotBond server secret. See [Bring your agent](docs/16-bring-your-agent.md) or run:
+
+```bash
+npm run example:external-agent -- \
+  --gateway https://botbond-gateway-752329931962.us-central1.run.app \
+  --wallet ~/.config/solana/id.json
+```
+
 The Vercel demo is organized as three real product surfaces rather than a presentation rail:
 
 - `Shop`: ordinary product browsing and human checkout
@@ -73,6 +81,8 @@ The Vercel demo is organized as three real product surfaces rather than a presen
 7. [결정 로그](docs/00-decision-log.md)
 8. [제출 소개서·데모 영상·재현 가이드](docs/14-team-demo-and-pitch-flow.md)
 9. [라이브 배포 및 온체인 증거](docs/15-live-deployment-evidence.md)
+10. [외부 에이전트 공개 연동](docs/16-bring-your-agent.md)
+11. [소개서·3분 영상 보완안](docs/17-deck-and-video-delta.md)
 
 ## 권장 저장소 구조
 

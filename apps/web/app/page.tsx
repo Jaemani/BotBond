@@ -29,6 +29,11 @@ import type { BotBondEventType, Fixture, ViewState } from "@/lib/types";
 import { explorerUrl, shortHash, shortSig, usdc } from "@/lib/format";
 import type { LiveEventStream } from "@/lib/usePlayer";
 import { usePlayer } from "@/lib/usePlayer";
+import {
+  createPublicDemoRun,
+  executePublicDemoRun,
+  type PublicDemoBehavior,
+} from "@/lib/publicDemo";
 
 const SCENARIOS = [
   { id: "01-normal-session", label: "Complete purchase", detail: "Allowed calls · full bond returned" },
@@ -36,7 +41,13 @@ const SCENARIOS = [
   { id: "03-abandoned-reservation", label: "Abandon last-unit hold", detail: "TTL expiry · bounded settlement" },
 ];
 
-type Surface = "shop" | "agent" | "operations";
+type Surface = "shop" | "agent" | "developer" | "operations";
+
+const BEHAVIOR_BY_SCENARIO: Record<string, PublicDemoBehavior> = {
+  "01-normal-session": "normal",
+  "02-scope-denied": "scope-denied",
+  "03-abandoned-reservation": "abandon",
+};
 
 function liveStreamFromLocation(): LiveEventStream | null {
   if (typeof window === "undefined") return null;
@@ -80,6 +91,7 @@ function CommerceHeader({
       <nav className="surface-nav" aria-label="BShop navigation">
         <button data-active={surface === "shop"} onClick={() => setSurface("shop")}>Shop</button>
         <button data-active={surface === "agent"} onClick={() => setSurface("agent")}>Agent API</button>
+        <button data-active={surface === "developer"} onClick={() => setSurface("developer")}>Integrate</button>
         <button data-active={surface === "operations"} onClick={() => setSurface("operations")}>Merchant Ops</button>
       </nav>
       <div className="commerce-meta">
@@ -269,10 +281,19 @@ function SettlementReceipt({ v, fixtureMode, onReset }: { v: ViewState; fixtureM
   );
 }
 
-function AgentRunSelector({ scenarioId, onChange, disabled }: { scenarioId: string; onChange: (id: string) => void; disabled: boolean }) {
-  return <div className="agent-run-selector"><div><span className="eyebrow">CLIENT BEHAVIOR</span><strong>Choose what the external agent attempts</strong></div><div className="run-options">
+function AgentRunSelector({ scenarioId, onChange, disabled, onRunLive, progress, error }: { scenarioId: string; onChange: (id: string) => void; disabled: boolean; onRunLive: () => void; progress: string | null; error: string | null }) {
+  return <div className="agent-run-selector"><div><span className="eyebrow">PUBLIC DEVNET AGENT</span><strong>Choose what the external agent attempts</strong><p>Each live run opens a fresh Solana bond. BShop sponsors the demo wallet and limits public usage.</p></div><div><div className="run-options">
     {SCENARIOS.map((scenario) => <button key={scenario.id} data-active={scenarioId === scenario.id} onClick={() => onChange(scenario.id)} disabled={disabled}><span>{scenario.label}</span><small>{scenario.detail}</small></button>)}
-  </div></div>;
+  </div><button className="live-run-action" onClick={onRunLive} disabled={disabled}><Circle weight="fill" /> {progress ?? "Run a fresh devnet session"}<ArrowRight /></button>{error && <div className="public-run-error"><WarningCircle /> {error}</div>}</div></div>;
+}
+
+function DeveloperIntegration() {
+  return <main className="developer-surface">
+    <div className="developer-heading"><span className="eyebrow">BRING YOUR AGENT</span><h1>One published route, no API-key application.</h1><p>BShop keeps its normal WAF policy. The merchant explicitly exposes a signed agent lane, and BotBond issues only the scope compiled for that job.</p></div>
+    <section className="cloudflare-boundary"><div><strong>Normal web traffic</strong><code>Agent → Cloudflare WAF → existing site policy</code><span>Unknown automation remains blocked.</span></div><ArrowRight /><div><strong>Merchant-approved agent lane</strong><code>Agent → WAF allowlisted path → BotBond → scoped API</code><span>No Cloudflare bypass. The site opens this route deliberately.</span></div></section>
+    <div className="integration-grid"><section><span className="step-number">01</span><h2>Discover</h2><pre>{`GET /.well-known/agent-access`}</pre><p>Read the catalog, session endpoints, Solana program and devnet onboarding mode.</p></section><section><span className="step-number">02</span><h2>Declare intent</h2><pre>{`POST /v1/intents\n{\n  "task": "Compare price and stock",\n  "agentWallet": "<SOLANA_PUBLIC_KEY>",\n  "budget": { ... }\n}`}</pre><p>Gemini maps the request to BShop’s own endpoint and field catalog.</p></section><section><span className="step-number">03</span><h2>Open the bond</h2><pre>{`npm run example:external-agent -- \\\n  --gateway https://... \\\n  --wallet ~/.config/solana/id.json`}</pre><p>The example creates a devnet test mint, opens the real bond, activates a short session and prints Explorer links.</p></section></div>
+    <section className="integration-truth"><ShieldCheck weight="duotone" /><div><strong>Execution boundary</strong><p>Solana bond open and settlement are live on devnet. The current usage credential endpoint is a labelled HMAC demo bridge; pay.sh x402 was sandbox-verified but is not claimed as live in this deployment.</p></div><a href="https://github.com/Jaemani/BotBond/blob/main/docs/16-bring-your-agent.md" target="_blank" rel="noreferrer">Open setup guide <ArrowSquareOut /></a></section>
+  </main>;
 }
 
 function MerchantOperations({ v, onOpenAgent }: { v: ViewState; onOpenAgent: () => void }) {
@@ -299,13 +320,15 @@ export default function Page() {
   const [surface, setSurface] = useState<Surface>("shop");
   const [cartOpen, setCartOpen] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
+  const [publicRunProgress, setPublicRunProgress] = useState<string | null>(null);
+  const [publicRunError, setPublicRunError] = useState<string | null>(null);
 
   useEffect(() => {
     const stream = liveStreamFromLocation();
     setLive(stream);
     const requestedSurface = new URLSearchParams(window.location.search).get("surface");
     if (stream) setSurface("agent");
-    else if (requestedSurface === "agent" || requestedSurface === "operations" || requestedSurface === "shop") setSurface(requestedSurface);
+    else if (requestedSurface === "agent" || requestedSurface === "developer" || requestedSurface === "operations" || requestedSurface === "shop") setSurface(requestedSurface);
   }, []);
 
   useEffect(() => {
@@ -335,6 +358,27 @@ export default function Page() {
     setScenarioId(id);
     player.reset();
   };
+  const runLive = async () => {
+    if (publicRunProgress) return;
+    setPublicRunError(null);
+    setPublicRunProgress("Opening a sponsored Solana bond…");
+    try {
+      const run = await createPublicDemoRun(BEHAVIOR_BY_SCENARIO[scenarioId] ?? "normal");
+      setLive({ url: `/gateway${run.eventStream}`, token: run.token });
+      setPublicRunProgress("Bond confirmed · connecting agent…");
+      await executePublicDemoRun(run, setPublicRunProgress);
+      setPublicRunProgress(null);
+    } catch (cause) {
+      const code = cause instanceof Error ? cause.message : "PUBLIC_DEMO_FAILED";
+      const messages: Record<string, string> = {
+        PUBLIC_DEMO_COOLDOWN: "This network has already used the public runner recently. Try again in 10 minutes or connect your own agent.",
+        PUBLIC_DEMO_BUSY: "Another public devnet transaction is confirming. Try again shortly.",
+        PUBLIC_DEMO_DAILY_LIMIT: "Today’s sponsored transaction budget has been reached. The external-agent example remains available.",
+      };
+      setPublicRunError(messages[code] ?? `Live run failed: ${code}`);
+      setPublicRunProgress(null);
+    }
+  };
   const navigateSurface = (next: Surface) => {
     setSurface(next);
     const url = new URL(window.location.href);
@@ -348,13 +392,14 @@ export default function Page() {
       <CommerceHeader surface={surface} setSurface={navigateSurface} live={Boolean(live)} liveStatus={player.liveStatus} />
       {loadError && <div className="load-error">Could not load demo evidence: {loadError}</div>}
       {surface === "shop" && <Storefront stock={stock} onAddToCart={() => { setOrderPlaced(false); setCartOpen(true); }} onAgentAccess={() => navigateSurface("agent")} />}
-      {surface === "agent" && <div className="agent-surface"><AgentRunSelector scenarioId={scenarioId} onChange={changeScenario} disabled={Boolean(live) || player.playing} />
+      {surface === "agent" && <div className="agent-surface"><AgentRunSelector scenarioId={scenarioId} onChange={changeScenario} disabled={Boolean(live) || player.playing || Boolean(publicRunProgress)} onRunLive={runLive} progress={publicRunProgress} error={publicRunError} />
         {stage === 1 && <AccessDenied onContinue={() => player.seek(positions.intent)} live={Boolean(live)} />}
         {stage === 2 && <IntentRequest v={v} onCompile={() => player.seek(positions.policy)} live={Boolean(live)} />}
         {stage === 3 && <AccessContract v={v} onActivate={() => player.seek(positions.active)} live={Boolean(live)} />}
         {stage === 4 && <ActiveSession v={v} onRun={player.play} playing={player.playing} onPause={player.pause} scenarioId={scenarioId} live={Boolean(live)} />}
         {stage === 5 && <SettlementReceipt v={v} fixtureMode={v.fixtureMode} onReset={player.reset} />}
       </div>}
+      {surface === "developer" && <DeveloperIntegration />}
       {surface === "operations" && <MerchantOperations v={v} onOpenAgent={() => navigateSurface("agent")} />}
       <CartDrawer open={cartOpen} placed={orderPlaced} onClose={() => setCartOpen(false)} onCheckout={() => setOrderPlaced(true)} />
     </div>
