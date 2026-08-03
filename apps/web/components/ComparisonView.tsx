@@ -85,7 +85,7 @@ function Timeline({ v }: { v: ViewState }) {
       {rows.map((r) => (
         <li key={r.id} data-kind={r.kind}>
           <span className="cmp-verdict">{r.headline}</span>
-          <span className="cmp-path">{r.path ?? r.detail}</span>
+          <span className="cmp-path">{r.path ?? ""}</span>
         </li>
       ))}
       {rows.length === 0 && <li className="cmp-idle">대기 중</li>}
@@ -143,7 +143,7 @@ export function ComparisonView() {
       <header className="cmp-head">
         <div>
           <span className="cmp-eyebrow">SAME POLICY · SAME PRICES · SAME START</span>
-          <h2 className="cmp-title">둘 다 통과했다. 비용만 갈렸다.</h2>
+          <h2 className="cmp-title">나란히 놓고 보기</h2>
         </div>
         <button
           className="tbtn primary"
