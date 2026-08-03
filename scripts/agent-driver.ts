@@ -74,9 +74,10 @@ async function main() {
 
   // Step 1 — 차단과 discovery ------------------------------------------------
   banner(1, "unregistered access → discovery");
-  const blind = await api("GET", "/v1/access/no-session/products");
+  const blind = await api("GET", "/products");
   console.log(
-    `  GET /v1/access/(no session)/products → ${C.deny(String(blind.status))} ${blind.json?.error?.code ?? "UNAUTHORIZED"}`,
+    `  GET /products (미등록 정문) → ${C.deny(String(blind.status))} ${blind.json?.error?.code ?? "UNAUTHORIZED"}` +
+      `${blind.json?.agentAccess?.discovery ? C.dim(`  → discovery: ${blind.json.agentAccess.discovery}`) : ""}`,
   );
   console.log(C.dim("  → 처음 보는 자동 클라이언트는 그냥 통과되지 않는다. 공식 통로를 찾는다."));
   const wk = await api("GET", "/.well-known/agent-access");
